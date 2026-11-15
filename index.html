@@ -2,14 +2,13 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0B0C10" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Orbit" />
-  <meta name="theme-color" content="#0d0e11" />
-  <title>Orbit — Personal Initiatives</title>
+  <title>Orbit — Personal OS</title>
 
-  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <!-- Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -26,11 +25,14 @@
             mono: ['JetBrains Mono', 'monospace'],
           },
           colors: {
-            obsidian: {
-              bg: '#0d0e11',
-              surface: '#14161b',
-              elevated: '#191c23',
-              border: '#23262f',
+            orbit: {
+              bg: '#0B0C10',
+              surface: '#12141C',
+              elevated: '#171A24',
+              border: '#1E2230',
+              hover: '#1B1E2B',
+              accent: '#6366F1',
+              violet: '#7C3AED',
             }
           }
         }
@@ -38,2327 +40,1678 @@
     };
   </script>
 
-  <!-- React 18 & Babel Standalone -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
   <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    :root {
-      --sat: env(safe-area-inset-top, 0px);
-      --sab: env(safe-area-inset-bottom, 0px);
-      --sal: env(safe-area-inset-left, 0px);
-      --sar: env(safe-area-inset-right, 0px);
-    }
-
-    html, body {
-      background-color: #0d0e11;
-      color: #f1f5f9;
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      background-color: #0B0C10;
+      color: #E2E8F0;
+      font-family: 'Inter', sans-serif;
       overscroll-behavior-y: none;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
     }
+    /* Custom subtle scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #232738; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #333952; }
 
-    input, textarea, select {
-      user-select: text;
-    }
+    /* Safe area padding for iPhone PWA */
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+    .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
 
-    .pt-safe {
-      padding-top: max(0.75rem, env(safe-area-inset-top));
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0.6; }
+      to { transform: translateX(0); opacity: 1; }
     }
+    .animate-drawer { animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 
-    .pb-safe {
-      padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.98); }
+      to { opacity: 1; transform: scale(1); }
     }
-
-    .pb-mobile-nav {
-      padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
-    }
-
-    /* Hide scrollbars cleanly where appropriate */
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-    .no-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-
-    /* Subtle custom scrollbars for desktop */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #23262f;
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #323744;
-    }
-
-    /* Custom date input dark mode icon */
-    input[type="date"]::-webkit-calendar-picker-indicator {
-      filter: invert(0.7);
-      cursor: pointer;
-    }
+    .animate-modal { animation: fadeIn 0.16s ease-out; }
   </style>
 </head>
-<body class="bg-[#0d0e11] text-slate-100 antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
-  <div id="root"></div>
+<body class="h-screen w-screen overflow-hidden flex flex-col md:flex-row select-none sm:select-auto">
 
-  <script type="text/babel">
-    const { useState, useEffect, useMemo, useRef, useCallback } = React;
+  <!-- ==================== DESKTOP SIDEBAR ==================== -->
+  <aside id="desktop-sidebar" class="hidden md:flex md:w-64 lg:w-68 flex-col bg-[#0E1017] border-r border-[#1E2230] h-full shrink-0">
+    <!-- Brand -->
+    <div class="px-4 py-4 flex items-center justify-between border-b border-[#1E2230]/70">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414m12.728 0l-1.414-1.414M7.05 7.05L5.636 5.636" />
+            <circle cx="12" cy="12" r="4" />
+          </svg>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-white leading-tight">Orbit</div>
+          <div class="text-[11px] text-slate-400 leading-tight">Personal OS</div>
+        </div>
+      </div>
+      <button onclick="openSyncModal()" title="Cloud Sync Settings" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1B1E2B] transition">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+        </svg>
+      </button>
+    </div>
 
-    // --- CLEAN INLINE SVG ICONS (Zero external icon library failure points) ---
-    const Icon = ({ name, className = 'w-4 h-4' }) => {
-      const props = {
-        className,
-        viewBox: '0 0 24 24',
-        fill: 'none',
-        stroke: 'currentColor',
-        strokeWidth: '1.85',
-        strokeLinecap: 'round',
-        strokeLinejoin: 'round',
-      };
+    <!-- Primary Action -->
+    <div class="p-3">
+      <button onclick="openCreateModal()" class="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-[#161924] hover:bg-[#1D2130] border border-[#262B3D] text-slate-200 text-xs font-medium transition group">
+        <span class="flex items-center gap-2">
+          <span class="text-indigo-400 font-bold text-sm">+</span> New Initiative
+        </span>
+        <kbd class="px-1.5 py-0.5 text-[10px] font-mono bg-[#0E1017] text-slate-400 rounded border border-[#262B3D]">C</kbd>
+      </button>
+    </div>
 
-      switch (name) {
-        case 'layers':
-          return <svg {...props}><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>;
-        case 'compass':
-          return <svg {...props}><circle cx="12" cy="12" r="10" /><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" /></svg>;
-        case 'briefcase':
-          return <svg {...props}><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>;
-        case 'graduation':
-          return <svg {...props}><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>;
-        case 'book':
-          return <svg {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>;
-        case 'heart':
-          return <svg {...props}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>;
-        case 'sparkles':
-          return <svg {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>;
-        case 'rocket':
-          return <svg {...props}><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" /><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" /><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" /></svg>;
-        case 'code':
-          return <svg {...props}><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>;
-        case 'dumbbell':
-          return <svg {...props}><path d="m6.5 6.5 11 11" /><path d="m21 21-1-1" /><path d="m3 3 1 1" /><path d="m18 22 4-4" /><path d="m2 6 4-4" /><path d="m3 10 7-7" /><path d="m14 21 7-7" /></svg>;
-        case 'plus':
-          return <svg {...props}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
-        case 'search':
-          return <svg {...props}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
-        case 'x':
-          return <svg {...props}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
-        case 'list':
-          return <svg {...props}><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>;
-        case 'kanban':
-          return <svg {...props}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M8 7v7" /><path d="M12 7v4" /><path d="M16 7v9" /></svg>;
-        case 'cloud':
-          return <svg {...props}><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" /></svg>;
-        case 'cloud-off':
-          return <svg {...props}><path d="m2 2 20 20" /><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193" /><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07" /></svg>;
-        case 'refresh':
-          return <svg {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></svg>;
-        case 'check':
-          return <svg {...props}><polyline points="20 6 9 17 4 12" /></svg>;
-        case 'check-circle':
-          return <svg {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>;
-        case 'circle':
-          return <svg {...props}><circle cx="12" cy="12" r="10" /></svg>;
-        case 'calendar':
-          return <svg {...props}><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>;
-        case 'trash':
-          return <svg {...props}><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>;
-        case 'copy':
-          return <svg {...props}><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>;
-        case 'chevron-down':
-          return <svg {...props}><polyline points="6 9 12 15 18 9" /></svg>;
-        case 'chevron-right':
-          return <svg {...props}><polyline points="9 18 15 12 9 6" /></svg>;
-        case 'sliders':
-          return <svg {...props}><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>;
-        case 'folder-plus':
-          return <svg {...props}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><line x1="12" y1="11" x2="12" y2="17" /><line x1="9" y1="14" x2="15" y2="14" /></svg>;
-        case 'arrow-right':
-          return <svg {...props}><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>;
-        default:
-          return <svg {...props}><circle cx="12" cy="12" r="9" /></svg>;
-      }
-    };
+    <!-- Navigation -->
+    <nav class="flex-1 overflow-y-auto px-3 space-y-5">
+      <div>
+        <button onclick="setActiveSpace('all')" id="nav-all" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
+          <span class="flex items-center gap-2.5">
+            <svg class="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9" />
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+            </svg>
+            All Initiatives
+          </span>
+          <span id="count-all" class="px-1.5 py-0.5 rounded-md text-[11px] font-mono bg-[#1A1E2E] text-slate-300">0</span>
+        </button>
+      </div>
 
-    // --- CONSTANTS & CONFIGURATION ---
+      <!-- Spaces List -->
+      <div>
+        <div class="px-2 mb-1.5 flex items-center justify-between">
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Spaces</span>
+          <button onclick="openNewSpaceModal()" title="Add Space" class="p-1 rounded-md text-slate-400 hover:text-white hover:bg-[#1B1E2B] transition">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        </div>
+        <div id="sidebar-spaces-list" class="space-y-1"></div>
+        <button onclick="openNewSpaceModal()" class="mt-1.5 w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs text-slate-500 hover:text-slate-300 hover:bg-[#161924] transition">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+          </svg>
+          New Space
+        </button>
+      </div>
+    </nav>
 
-    const STATUS_CONFIG = {
-      'in-progress': {
-        id: 'in-progress',
-        label: 'In Progress',
-        color: 'text-amber-400',
-        bg: 'bg-amber-500/10',
-        dot: 'bg-amber-400',
-      },
-      'review': {
-        id: 'review',
-        label: 'Review',
-        color: 'text-violet-400',
-        bg: 'bg-violet-500/10',
-        dot: 'bg-violet-400',
-      },
-      'backlog': {
-        id: 'backlog',
-        label: 'Backlog',
-        color: 'text-slate-400',
-        bg: 'bg-slate-500/10',
-        dot: 'bg-slate-400',
-      },
-      'done': {
-        id: 'done',
-        label: 'Done',
-        color: 'text-emerald-400',
-        bg: 'bg-emerald-500/10',
-        dot: 'bg-emerald-400',
-      },
-    };
+    <!-- Bottom Cloud Sync Status -->
+    <div class="p-3 border-t border-[#1E2230] flex items-center justify-between gap-2">
+      <button onclick="openSyncModal()" id="sync-status-btn" class="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-[#141720] hover:bg-[#1B1F2C] border border-[#232838] text-xs font-medium transition truncate">
+        <span id="sync-dot" class="w-2 h-2 rounded-full bg-slate-500 shrink-0"></span>
+        <span id="sync-label" class="text-slate-300 truncate">Local Only</span>
+      </button>
+      <button onclick="manualSyncNow()" title="Sync Now" class="p-2 rounded-xl bg-[#141720] hover:bg-[#1B1F2C] border border-[#232838] text-slate-400 hover:text-white transition">
+        <svg id="sync-refresh-icon" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </button>
+    </div>
+  </aside>
 
-    const STATUS_ORDER = ['in-progress', 'review', 'backlog', 'done'];
+  <!-- ==================== MAIN WORKSPACE ==================== -->
+  <main class="flex-1 flex flex-col h-full overflow-hidden bg-[#0B0C10]">
+    <!-- Top Bar -->
+    <header class="pt-safe px-4 md:px-6 py-3.5 border-b border-[#1E2230] bg-[#0B0C10]/95 backdrop-blur flex flex-col gap-3 shrink-0">
+      <div class="flex items-center justify-between gap-3">
+        <!-- View Title & Count -->
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-6 h-6 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9" />
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+            </svg>
+          </div>
+          <h1 id="workspace-title" class="text-base md:text-lg font-semibold text-white truncate">All Initiatives</h1>
+          <span id="workspace-count" class="px-2 py-0.5 text-xs font-mono rounded-full bg-[#161924] text-slate-400 border border-[#232838]">0</span>
+        </div>
 
-    const PRIORITY_CONFIG = {
-      urgent: { id: 'urgent', label: 'Urgent', color: 'text-rose-400', bars: 4 },
-      high: { id: 'high', label: 'High', color: 'text-orange-400', bars: 3 },
-      medium: { id: 'medium', label: 'Medium', color: 'text-indigo-400', bars: 2 },
-      low: { id: 'low', label: 'Low', color: 'text-slate-400', bars: 1 },
-      none: { id: 'none', label: 'None', color: 'text-slate-600', bars: 0 },
-    };
+        <!-- Right Controls -->
+        <div class="flex items-center gap-2">
+          <!-- Search (Desktop) -->
+          <div class="relative hidden sm:block w-52 lg:w-64">
+            <svg class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+            </svg>
+            <input id="search-input" type="text" placeholder="Search initiatives..." oninput="handleSearch(this.value)" class="w-full pl-8 pr-11 py-1.5 text-xs bg-[#12141C] border border-[#1E2230] focus:border-indigo-500/60 focus:outline-none rounded-xl text-slate-200 placeholder-slate-500 transition" />
+            <kbd class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500 bg-[#181B26] px-1.5 py-0.5 rounded border border-[#242938]">⌘K</kbd>
+          </div>
 
-    const PRIORITY_ORDER = ['urgent', 'high', 'medium', 'low', 'none'];
+          <!-- View Toggle -->
+          <div class="flex items-center bg-[#12141C] p-0.5 rounded-xl border border-[#1E2230]">
+            <button onclick="setViewMode('list')" id="btn-view-list" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#1E2232] text-white transition">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              <span class="hidden sm:inline">List</span>
+            </button>
+            <button onclick="setViewMode('board')" id="btn-view-board" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="18" rx="1.5" />
+                <rect x="14" y="3" width="7" height="12" rx="1.5" />
+              </svg>
+              <span class="hidden sm:inline">Board</span>
+            </button>
+          </div>
 
-    const SPACE_COLORS = [
-      { name: 'Indigo', dot: 'bg-indigo-500', text: 'text-indigo-400', soft: 'bg-indigo-500/15' },
-      { name: 'Sky', dot: 'bg-sky-500', text: 'text-sky-400', soft: 'bg-sky-500/15' },
-      { name: 'Amber', dot: 'bg-amber-500', text: 'text-amber-400', soft: 'bg-amber-500/15' },
-      { name: 'Rose', dot: 'bg-rose-500', text: 'text-rose-400', soft: 'bg-rose-500/15' },
-      { name: 'Emerald', dot: 'bg-emerald-500', text: 'text-emerald-400', soft: 'bg-emerald-500/15' },
-      { name: 'Violet', dot: 'bg-violet-500', text: 'text-violet-400', soft: 'bg-violet-500/15' },
-    ];
+          <!-- New Primary Button -->
+          <button onclick="openCreateModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white text-xs font-semibold shadow-lg shadow-indigo-600/25 transition">
+            <span class="text-sm leading-none">+</span>
+            <span>New</span>
+          </button>
+        </div>
+      </div>
 
-    const SPACE_ICON_KEYS = ['briefcase', 'graduation', 'book', 'heart', 'sparkles', 'rocket', 'code', 'dumbbell'];
+      <!-- Filter Row: Space Pills + Priority Filter + Mobile Search -->
+      <div class="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+        <div id="filter-space-pills" class="flex items-center gap-1.5 shrink-0"></div>
 
-    const INITIAL_SPACES = [
-      { id: 'work', name: 'Work', icon: 'briefcase', color: 'Indigo' },
-      { id: 'school', name: 'School', icon: 'graduation', color: 'Sky' },
-      { id: 'learning', name: 'Learning', icon: 'book', color: 'Amber' },
-      { id: 'life', name: 'Life', icon: 'heart', color: 'Rose' },
-    ];
+        <div class="flex items-center gap-2 shrink-0">
+          <select id="priority-filter" onchange="handlePriorityFilter(this.value)" class="px-2.5 py-1 text-xs bg-[#12141C] border border-[#1E2230] rounded-xl text-slate-300 focus:outline-none focus:border-indigo-500">
+            <option value="all">All Priorities</option>
+            <option value="Urgent">Urgent</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+      </div>
 
-    const INITIAL_INITIATIVES = [
-      {
-        id: 'init-1',
-        code: 'WRK-101',
-        title: 'Q4 API Performance & Caching Migration',
-        spaceId: 'work',
-        status: 'in-progress',
-        priority: 'urgent',
-        targetDate: '2026-12-15',
-        description: 'Move high-traffic endpoints to edge-cached Redis clusters and reduce p95 latency under 80ms.',
-        subtasks: [
-          { id: 's-1', title: 'Profile slow database queries', completed: true },
-          { id: 's-2', title: 'Deploy staging Redis cluster', completed: true },
-          { id: 's-3', title: 'Roll out canary traffic at 10%', completed: false },
-          { id: 's-4', title: 'Verify metrics & full cutover', completed: false },
-        ],
-        updatedAt: '2026-11-15T10:00:00Z',
-      },
-      {
-        id: 'init-2',
-        code: 'LRN-204',
-        title: 'Build Rust + WebAssembly Image Tool',
-        spaceId: 'learning',
-        status: 'in-progress',
-        priority: 'high',
-        targetDate: '2026-12-28',
-        description: 'Learn Rust ownership and memory lifetimes by compiling a fast client-side image compressor to WASM.',
-        subtasks: [
-          { id: 's-5', title: 'Finish Chapters 1–10 of The Rust Book', completed: true },
-          { id: 's-6', title: 'Compile wasm-pack starter bridge', completed: false },
-          { id: 's-7', title: 'Benchmark against pure JS canvas', completed: false },
-        ],
-        updatedAt: '2026-11-15T09:30:00Z',
-      },
-      {
-        id: 'init-3',
-        code: 'SCH-302',
-        title: 'Distributed Systems Capstone Paper',
-        spaceId: 'school',
-        status: 'review',
-        priority: 'high',
-        targetDate: '2026-12-08',
-        description: 'Finalize IEEE formatted 10-page paper evaluating Raft consensus latency under network partitions.',
-        subtasks: [
-          { id: 's-8', title: 'Run 5-node fault injection benchmarks', completed: true },
-          { id: 's-9', title: 'Generate latency percentile plots', completed: true },
-          { id: 's-10', title: 'Proofread final LaTeX draft', completed: false },
-        ],
-        updatedAt: '2026-11-14T18:00:00Z',
-      },
-      {
-        id: 'init-4',
-        code: 'LIF-108',
-        title: 'Sub-1:45 Half Marathon Training Block',
-        spaceId: 'life',
-        status: 'in-progress',
-        priority: 'medium',
-        targetDate: '2027-01-18',
-        description: '12-week aerobic base and tempo build. Prioritize sleep consistency and Zone 2 heart rate runs.',
-        subtasks: [
-          { id: 's-11', title: 'Complete Base Phase (Weeks 1–4)', completed: true },
-          { id: 's-12', title: 'Complete 16km long progression run', completed: false },
-          { id: 's-13', title: '2-week race taper', completed: false },
-        ],
-        updatedAt: '2026-11-14T12:00:00Z',
-      },
-      {
-        id: 'init-5',
-        code: 'WRK-109',
-        title: 'Design Token Audit & Dark Mode Polish',
-        spaceId: 'work',
-        status: 'backlog',
-        priority: 'medium',
-        targetDate: '2026-12-22',
-        description: 'Unify border contrast and typography scale across web and mobile views.',
-        subtasks: [
-          { id: 's-14', title: 'Audit WCAG contrast ratios', completed: false },
-          { id: 's-15', title: 'Update shared component tokens', completed: false },
-        ],
-        updatedAt: '2026-11-13T15:00:00Z',
-      },
-      {
-        id: 'init-6',
-        code: 'LIF-112',
-        title: 'Minimalist Single-Cable Desk Setup',
-        spaceId: 'life',
-        status: 'done',
-        priority: 'low',
-        targetDate: '2026-11-10',
-        description: 'Mount monitor arm, route power cables under desk tray, and configure Thunderbolt dock.',
-        subtasks: [
-          { id: 's-16', title: 'Install under-desk cable tray', completed: true },
-          { id: 's-17', title: 'Calibrate display & warm bias light', completed: true },
-        ],
-        updatedAt: '2026-11-10T20:00:00Z',
-      },
-    ];
+      <!-- Mobile Search Bar -->
+      <div class="sm:hidden relative">
+        <svg class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+        </svg>
+        <input id="mobile-search-input" type="text" placeholder="Search initiatives & assignments..." oninput="handleSearch(this.value)" class="w-full pl-8 pr-3 py-1.5 text-xs bg-[#12141C] border border-[#1E2230] focus:border-indigo-500/60 focus:outline-none rounded-xl text-slate-200 placeholder-slate-500" />
+      </div>
+    </header>
 
-    const SUPABASE_SQL_SNIPPET = `create table if not exists orbit_workspaces (
+    <!-- Workspace Content Area -->
+    <div id="workspace-content" class="flex-1 overflow-y-auto px-4 md:px-6 py-4 pb-24 md:pb-8"></div>
+  </main>
+
+  <!-- ==================== MOBILE BOTTOM NAVIGATION BAR ==================== -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-[#0E1017]/95 backdrop-blur border-t border-[#1E2230] pb-safe">
+    <div class="grid grid-cols-4 h-14">
+      <button onclick="setActiveSpace('all')" id="mob-nav-all" class="flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-indigo-400">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9" />
+          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+        </svg>
+        <span>All</span>
+      </button>
+      <button onclick="openMobileSpacesSheet()" class="flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-slate-400 hover:text-white">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+        <span>Spaces</span>
+      </button>
+      <button onclick="openCreateModal()" class="flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-indigo-400">
+        <div class="w-7 h-7 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow shadow-indigo-600/30">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </div>
+      </button>
+      <button onclick="openSyncModal()" class="flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-slate-400 hover:text-white">
+        <div class="relative">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+          </svg>
+          <span id="mob-sync-dot" class="w-2 h-2 rounded-full bg-slate-500 absolute -top-0.5 -right-1 border border-[#0E1017]"></span>
+        </div>
+        <span id="mob-sync-label">Sync</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ==================== DETAIL SLIDE-OVER DRAWER ==================== -->
+  <div id="detail-drawer-backdrop" onclick="closeDetailDrawer()" class="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs hidden"></div>
+  <aside id="detail-drawer" class="fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-[#11131B] border-l border-[#1E2230] shadow-2xl hidden flex-col animate-drawer">
+    <div id="detail-drawer-content" class="flex-1 flex flex-col h-full overflow-hidden"></div>
+  </aside>
+
+  <!-- ==================== CREATE INITIATIVE / SUB-INITIATIVE MODAL ==================== -->
+  <div id="create-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div onclick="event.stopPropagation()" class="w-full max-w-md bg-[#131620] border border-[#23283A] rounded-2xl shadow-2xl p-5 animate-modal">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 id="create-modal-title" class="text-sm font-semibold text-white">New Initiative</h2>
+          <p id="create-modal-subtitle" class="text-xs text-slate-400 mt-0.5 hidden"></p>
+        </div>
+        <button onclick="closeCreateModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1D2130]">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form onsubmit="submitCreateForm(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Title</label>
+          <input id="create-title" type="text" required placeholder="e.g., CS 162: Operating Systems or Problem Set 4" class="w-full px-3 py-2 text-sm bg-[#0D0F16] border border-[#23283A] focus:border-indigo-500 focus:outline-none rounded-xl text-white placeholder-slate-500" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div id="create-space-wrapper">
+            <label class="block text-[11px] font-medium text-slate-400 mb-1">Space</label>
+            <select id="create-space" class="w-full px-3 py-2 text-xs bg-[#0D0F16] border border-[#23283A] focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200"></select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-400 mb-1">Status</label>
+            <select id="create-status" class="w-full px-3 py-2 text-xs bg-[#0D0F16] border border-[#23283A] focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200">
+              <option value="Backlog">Backlog</option>
+              <option value="In Progress" selected>In Progress</option>
+              <option value="Review">Review</option>
+              <option value="Done">Done</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-400 mb-1">Priority</label>
+            <select id="create-priority" class="w-full px-3 py-2 text-xs bg-[#0D0F16] border border-[#23283A] focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200">
+              <option value="Urgent">Urgent</option>
+              <option value="High">High</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-400 mb-1">Due Date</label>
+            <input id="create-due" type="date" class="w-full px-3 py-2 text-xs bg-[#0D0F16] border border-[#23283A] focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Notes (Optional)</label>
+          <textarea id="create-notes" rows="2" placeholder="Links, Canvas details, deliverables..." class="w-full px-3 py-2 text-xs bg-[#0D0F16] border border-[#23283A] focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 placeholder-slate-500"></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeCreateModal()" class="px-3.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-[#1C202E] transition">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/25 transition">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== NEW SPACE MODAL ==================== -->
+  <div id="space-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div onclick="event.stopPropagation()" class="w-full max-w-sm bg-[#131620] border border-[#23283A] rounded-2xl shadow-2xl p-5 animate-modal">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-white">Create New Space</h2>
+        <button onclick="closeNewSpaceModal()" class="p-1 rounded-lg text-slate-400 hover:text-white">✕</button>
+      </div>
+      <form onsubmit="submitNewSpace(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Space Name</label>
+          <input id="new-space-name" type="text" required placeholder="e.g., Research, Startup, Fitness" class="w-full px-3 py-2 text-sm bg-[#0D0F16] border border-[#23283A] focus:border-indigo-500 focus:outline-none rounded-xl text-white" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Accent Color</label>
+          <select id="new-space-color" class="w-full px-3 py-2 text-xs bg-[#0D0F16] border border-[#23283A] rounded-xl text-slate-200">
+            <option value="indigo">Indigo</option>
+            <option value="blue">Blue</option>
+            <option value="amber">Amber</option>
+            <option value="rose">Rose</option>
+            <option value="emerald">Emerald</option>
+            <option value="purple">Purple</option>
+          </select>
+        </div>
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeNewSpaceModal()" class="px-3 py-1.5 rounded-xl text-xs text-slate-400 hover:text-white">Cancel</button>
+          <button type="submit" class="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold">Add Space</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MOBILE SPACES SHEET ==================== -->
+  <div id="mobile-spaces-modal" onclick="closeMobileSpacesSheet()" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden items-end justify-center">
+    <div onclick="event.stopPropagation()" class="w-full bg-[#131620] border-t border-[#23283A] rounded-t-2xl p-5 pb-safe space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-semibold text-white">Spaces</span>
+        <button onclick="openNewSpaceModal(); closeMobileSpacesSheet();" class="text-xs text-indigo-400 font-medium">+ New Space</button>
+      </div>
+      <div id="mobile-spaces-list" class="space-y-1.5"></div>
+    </div>
+  </div>
+
+  <!-- ==================== CROSS-DEVICE CLOUD SYNC MODAL ==================== -->
+  <div id="sync-modal" onclick="closeSyncModal()" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div onclick="event.stopPropagation()" class="w-full max-w-lg bg-[#13151E] border border-[#242838] rounded-2xl shadow-2xl p-5 max-h-[92vh] overflow-y-auto animate-modal">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+          </svg>
+          <h2 class="text-sm font-semibold text-white">Cross-Device Cloud Sync (Free)</h2>
+        </div>
+        <button onclick="closeSyncModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1E2232]">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-400 mb-3.5 leading-relaxed">
+        Sync initiatives & sub-initiatives across your Mac, iPhone, and Instinct agent in real time. Leave blank to stay in Local Only mode.
+      </p>
+
+      <!-- SQL Setup Box -->
+      <div class="mb-4 p-3 rounded-xl bg-[#0C0E14] border border-[#1E2230]">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Step 1: Run Once in Supabase SQL Editor</span>
+          <button type="button" onclick="copySetupSQL()" id="copy-sql-btn" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#191D2B] hover:bg-[#22273A] border border-[#2A3045] text-[11px] font-medium text-slate-200 transition">
+            <span>Copy SQL</span>
+          </button>
+        </div>
+        <pre id="setup-sql-code" class="text-[11px] font-mono text-slate-300 overflow-x-auto leading-relaxed">create table if not exists orbit_workspaces (
   id text primary key,
   data jsonb not null,
   updated_at timestamptz default now()
 );
 alter table orbit_workspaces enable row level security;
 create policy "Personal passkey sync" on orbit_workspaces for all using (true) with check (true);
-alter publication supabase_realtime add table orbit_workspaces;`;
-
-    // --- SMALL VISUAL COMPONENTS ---
-
-    const StatusGlyph = ({ status, className = 'w-4 h-4' }) => {
-      switch (status) {
-        case 'in-progress':
-          return (
-            <svg className={`${className} text-amber-400`} viewBox="0 0 16 16" fill="none">
-              <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M8 1.5A6.5 6.5 0 0 1 8 14.5V1.5Z" fill="currentColor" />
-            </svg>
-          );
-        case 'review':
-          return (
-            <svg className={`${className} text-violet-400`} viewBox="0 0 16 16" fill="none">
-              <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
-              <circle cx="8" cy="8" r="3" fill="currentColor" />
-            </svg>
-          );
-        case 'done':
-          return <Icon name="check-circle" className={`${className} text-emerald-400`} />;
-        case 'backlog':
-        default:
-          return (
-            <svg className={`${className} text-slate-400`} viewBox="0 0 16 16" fill="none">
-              <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2.5 2.5" />
-            </svg>
-          );
-      }
-    };
-
-    const PriorityGlyph = ({ priority }) => {
-      const cfg = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.none;
-      if (priority === 'urgent') {
-        return (
-          <span className={`inline-flex items-center justify-center w-4 h-4 rounded bg-rose-500/15 ${cfg.color}`} title="Urgent">
-            <svg className="w-3 h-3" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 3.5a1 1 0 0 1 1 1v4a1 1 0 1 1-2 0v-4a1 1 0 0 1 1-1Zm0 8.5a1.1 1.1 0 1 0 0-2.2 1.1 1.1 0 0 0 0 2.2Z" />
-            </svg>
-          </span>
-        );
-      }
-      return (
-        <span className={`inline-flex items-end gap-[2px] h-3.5 w-4 justify-center ${cfg.color}`} title={cfg.label}>
-          <span className={`w-[2.5px] h-1.5 rounded-full ${cfg.bars >= 1 ? 'bg-current' : 'bg-slate-700'}`} />
-          <span className={`w-[2.5px] h-2.5 rounded-full ${cfg.bars >= 2 ? 'bg-current' : 'bg-slate-700'}`} />
-          <span className={`w-[2.5px] h-3.5 rounded-full ${cfg.bars >= 3 ? 'bg-current' : 'bg-slate-700'}`} />
-        </span>
-      );
-    };
-
-    const ProgressRing = ({ progress, size = 16 }) => {
-      const strokeWidth = 2;
-      const radius = (size - strokeWidth) / 2;
-      const circumference = radius * 2 * Math.PI;
-      const offset = circumference - (progress / 100) * circumference;
-
-      return (
-        <svg width={size} height={size} className="-rotate-90 shrink-0">
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="currentColor"
-            strokeWidth={strokeWidth}
-            fill="transparent"
-            className="text-slate-800"
-          />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="currentColor"
-            strokeWidth={strokeWidth}
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-            fill="transparent"
-            className={progress === 100 ? 'text-emerald-400 transition-all duration-300' : 'text-indigo-400 transition-all duration-300'}
-          />
-        </svg>
-      );
-    };
-
-    // --- MAIN APPLICATION ---
-
-    function App() {
-      // Core Data State
-      const [spaces, setSpaces] = useState(() => {
-        try {
-          const saved = localStorage.getItem('orbit_spaces_v2');
-          return saved ? JSON.parse(saved) : INITIAL_SPACES;
-        } catch {
-          return INITIAL_SPACES;
-        }
-      });
-
-      const [initiatives, setInitiatives] = useState(() => {
-        try {
-          const saved = localStorage.getItem('orbit_initiatives_v2');
-          return saved ? JSON.parse(saved) : INITIAL_INITIATIVES;
-        } catch {
-          return INITIAL_INITIATIVES;
-        }
-      });
-
-      // Supabase Cloud Sync Config
-      const [syncConfig, setSyncConfig] = useState(() => {
-        try {
-          const saved = localStorage.getItem('orbit_supabase_cfg_v1');
-          return saved
-            ? JSON.parse(saved)
-            : { url: '', anonKey: '', workspaceId: '' };
-        } catch {
-          return { url: '', anonKey: '', workspaceId: '' };
-        }
-      });
-
-      const [syncStatus, setSyncStatus] = useState('local'); // 'local' | 'syncing' | 'synced' | 'error'
-      const [syncErrorMsg, setSyncErrorMsg] = useState('');
-      const [lastSyncedAt, setLastSyncedAt] = useState(null);
-
-      // UI & Navigation State
-      const [activeSpaceId, setActiveSpaceId] = useState('all');
-      const [viewMode, setViewMode] = useState('list'); // 'list' | 'board'
-      const [searchQuery, setSearchQuery] = useState('');
-      const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-      const [priorityFilter, setPriorityFilter] = useState('all');
-      const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-      const [collapsedGroups, setCollapsedGroups] = useState({});
-
-      // Modals & Drawers
-      const [selectedInitId, setSelectedInitId] = useState(null);
-      const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
-      const [quickAddOpen, setQuickAddOpen] = useState(false);
-      const [newSpaceOpen, setNewSpaceOpen] = useState(false);
-      const [syncModalOpen, setSyncModalOpen] = useState(false);
-
-      // Quick Add Form State
-      const [qaTitle, setQaTitle] = useState('');
-      const [qaSpaceId, setQaSpaceId] = useState('work');
-      const [qaStatus, setQaStatus] = useState('in-progress');
-      const [qaPriority, setQaPriority] = useState('medium');
-      const [qaDate, setQaDate] = useState('');
-      const [qaDesc, setQaDesc] = useState('');
-
-      // New Space Form State
-      const [nsName, setNsName] = useState('');
-      const [nsIcon, setNsIcon] = useState('sparkles');
-      const [nsColor, setNsColor] = useState('Indigo');
-
-      // Sync Form Draft State
-      const [draftUrl, setDraftUrl] = useState(syncConfig.url);
-      const [draftKey, setDraftKey] = useState(syncConfig.anonKey);
-      const [draftWorkspace, setDraftWorkspace] = useState(syncConfig.workspaceId);
-
-      // Drag & Drop State
-      const [draggedId, setDraggedId] = useState(null);
-      const [dragOverCol, setDragOverCol] = useState(null);
-
-      // Toast Notification
-      const [toast, setToast] = useState(null);
-
-      // Refs for preventing echo loops during Realtime updates
-      const supabaseRef = useRef(null);
-      const isApplyingRemoteRef = useRef(false);
-      const pushTimeoutRef = useRef(null);
-      const latestStateRef = useRef({ spaces, initiatives });
-      const searchInputRef = useRef(null);
-      const qaTitleRef = useRef(null);
-
-      useEffect(() => {
-        latestStateRef.current = { spaces, initiatives };
-      }, [spaces, initiatives]);
-
-      const showToast = useCallback((msg) => {
-        setToast(msg);
-        setTimeout(() => {
-          setToast((prev) => (prev === msg ? null : prev));
-        }, 2500);
-      }, []);
-
-      // Always persist locally first (instant offline-first speed)
-      useEffect(() => {
-        try {
-          localStorage.setItem('orbit_spaces_v2', JSON.stringify(spaces));
-        } catch (e) {
-          console.error('Local storage error:', e);
-        }
-      }, [spaces]);
-
-      useEffect(() => {
-        try {
-          localStorage.setItem('orbit_initiatives_v2', JSON.stringify(initiatives));
-        } catch (e) {
-          console.error('Local storage error:', e);
-        }
-      }, [initiatives]);
-
-      // --- SUPABASE REALTIME & SYNC ENGINE ---
-
-      const pushToSupabase = useCallback(
-        async (spacesData, initiativesData, cfgOverride = null) => {
-          const cfg = cfgOverride || syncConfig;
-          if (!cfg.url || !cfg.anonKey || !cfg.workspaceId || !supabaseRef.current) {
-            return;
-          }
-          try {
-            setSyncStatus('syncing');
-            setSyncErrorMsg('');
-            const payload = {
-              id: cfg.workspaceId.trim(),
-              data: {
-                spaces: spacesData,
-                initiatives: initiativesData,
-              },
-              updated_at: new Date().toISOString(),
-            };
-
-            const { error } = await supabaseRef.current
-              .from('orbit_workspaces')
-              .upsert(payload, { onConflict: 'id' });
-
-            if (error) throw error;
-
-            setSyncStatus('synced');
-            setLastSyncedAt(new Date());
-          } catch (err) {
-            console.error('Supabase push error:', err);
-            setSyncStatus('error');
-            setSyncErrorMsg(err.message || 'Failed to sync to Supabase');
-          }
-        },
-        [syncConfig]
-      );
-
-      const pullFromSupabase = useCallback(
-        async (cfgOverride = null, silent = false) => {
-          const cfg = cfgOverride || syncConfig;
-          if (!cfg.url || !cfg.anonKey || !cfg.workspaceId || !supabaseRef.current) {
-            return;
-          }
-          try {
-            setSyncStatus('syncing');
-            setSyncErrorMsg('');
-            const { data, error } = await supabaseRef.current
-              .from('orbit_workspaces')
-              .select('data, updated_at')
-              .eq('id', cfg.workspaceId.trim())
-              .maybeSingle();
-
-            if (error) throw error;
-
-            if (data && data.data) {
-              isApplyingRemoteRef.current = true;
-              if (Array.isArray(data.data.spaces) && data.data.spaces.length > 0) {
-                setSpaces(data.data.spaces);
-              }
-              if (Array.isArray(data.data.initiatives)) {
-                setInitiatives(data.data.initiatives);
-              }
-              setTimeout(() => {
-                isApplyingRemoteRef.current = false;
-              }, 300);
-              setSyncStatus('synced');
-              setLastSyncedAt(new Date());
-              if (!silent) showToast('Pulled latest cloud data');
-            } else {
-              // Workspace ID doesn't exist in Supabase yet -> seed it with current local data
-              await pushToSupabase(
-                latestStateRef.current.spaces,
-                latestStateRef.current.initiatives,
-                cfg
-              );
-              if (!silent) showToast('Initialized cloud workspace');
-            }
-          } catch (err) {
-            console.error('Supabase pull error:', err);
-            setSyncStatus('error');
-            setSyncErrorMsg(err.message || 'Failed to connect to Supabase');
-          }
-        },
-        [syncConfig, pushToSupabase, showToast]
-      );
-
-      // Initialize Supabase client & Realtime subscription whenever syncConfig changes
-      useEffect(() => {
-        if (!syncConfig.url || !syncConfig.anonKey || !syncConfig.workspaceId) {
-          supabaseRef.current = null;
-          setSyncStatus('local');
-          return;
-        }
-
-        if (!window.supabase) {
-          setSyncStatus('error');
-          setSyncErrorMsg('Supabase SDK not loaded');
-          return;
-        }
-
-        try {
-          const client = window.supabase.createClient(
-            syncConfig.url.trim(),
-            syncConfig.anonKey.trim()
-          );
-          supabaseRef.current = client;
-
-          // Initial fetch
-          pullFromSupabase(syncConfig, true);
-
-          // Subscribe to real-time updates from other devices (iPhone <-> Computer)
-          const wsId = syncConfig.workspaceId.trim();
-          const channel = client
-            .channel(`orbit-sync-${wsId}`)
-            .on(
-              'postgres_changes',
-              {
-                event: '*',
-                schema: 'public',
-                table: 'orbit_workspaces',
-                filter: `id=eq.${wsId}`,
-              },
-              (payload) => {
-                const remoteData = payload.new?.data;
-                if (remoteData) {
-                  isApplyingRemoteRef.current = true;
-                  if (Array.isArray(remoteData.spaces) && remoteData.spaces.length > 0) {
-                    setSpaces(remoteData.spaces);
-                  }
-                  if (Array.isArray(remoteData.initiatives)) {
-                    setInitiatives(remoteData.initiatives);
-                  }
-                  setSyncStatus('synced');
-                  setLastSyncedAt(new Date());
-                  setTimeout(() => {
-                    isApplyingRemoteRef.current = false;
-                  }, 350);
-                }
-              }
-            )
-            .subscribe();
-
-          return () => {
-            client.removeChannel(channel);
-          };
-        } catch (err) {
-          console.error('Supabase client init error:', err);
-          setSyncStatus('error');
-          setSyncErrorMsg(err.message || 'Invalid Supabase URL or Key');
-        }
-      }, [syncConfig, pullFromSupabase]);
-
-      // Debounced auto-push when local spaces or initiatives change
-      useEffect(() => {
-        if (
-          !syncConfig.url ||
-          !syncConfig.anonKey ||
-          !syncConfig.workspaceId ||
-          isApplyingRemoteRef.current
-        ) {
-          return;
-        }
-
-        if (pushTimeoutRef.current) clearTimeout(pushTimeoutRef.current);
-        pushTimeoutRef.current = setTimeout(() => {
-          pushToSupabase(spaces, initiatives);
-        }, 550);
-
-        return () => {
-          if (pushTimeoutRef.current) clearTimeout(pushTimeoutRef.current);
-        };
-      }, [spaces, initiatives, syncConfig, pushToSupabase]);
-
-      // Keyboard Shortcuts (Desktop)
-      useEffect(() => {
-        const onKeyDown = (e) => {
-          const tag = e.target.tagName.toLowerCase();
-          const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select';
-
-          if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-            e.preventDefault();
-            searchInputRef.current?.focus();
-            return;
-          }
-
-          if (e.key === 'Escape') {
-            if (quickAddOpen) return setQuickAddOpen(false);
-            if (newSpaceOpen) return setNewSpaceOpen(false);
-            if (syncModalOpen) return setSyncModalOpen(false);
-            if (selectedInitId) return setSelectedInitId(null);
-            if (mobileSearchOpen) return setMobileSearchOpen(false);
-            if (document.activeElement === searchInputRef.current) {
-              setSearchQuery('');
-              searchInputRef.current.blur();
-            }
-            return;
-          }
-
-          if (isTyping) return;
-
-          if (e.key.toLowerCase() === 'c' && !e.metaKey && !e.ctrlKey) {
-            e.preventDefault();
-            openQuickAdd();
-          } else if (e.key === '1') {
-            setViewMode('list');
-          } else if (e.key === '2') {
-            setViewMode('board');
-          } else if (e.key === '[') {
-            setSidebarCollapsed((prev) => !prev);
-          }
-        };
-
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-      }, [quickAddOpen, newSpaceOpen, syncModalOpen, selectedInitId, mobileSearchOpen, activeSpaceId, spaces]);
-
-      // --- COMPUTED HELPERS ---
-
-      const spaceMap = useMemo(() => {
-        const m = {};
-        spaces.forEach((s) => (m[s.id] = s));
-        return m;
-      }, [spaces]);
-
-      const getColorObj = (colorName) =>
-        SPACE_COLORS.find((c) => c.name === colorName) || SPACE_COLORS[0];
-
-      const getProgress = (item) => {
-        if (!item.subtasks || item.subtasks.length === 0) {
-          return item.status === 'done' ? 100 : 0;
-        }
-        const doneCount = item.subtasks.filter((s) => s.completed).length;
-        return Math.round((doneCount / item.subtasks.length) * 100);
-      };
-
-      const filteredInitiatives = useMemo(() => {
-        return initiatives.filter((item) => {
-          if (activeSpaceId !== 'all' && item.spaceId !== activeSpaceId) return false;
-          if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false;
-          if (searchQuery.trim() !== '') {
-            const q = searchQuery.toLowerCase();
-            const matchTitle = item.title.toLowerCase().includes(q);
-            const matchCode = item.code.toLowerCase().includes(q);
-            const matchDesc = (item.description || '').toLowerCase().includes(q);
-            const matchSub = (item.subtasks || []).some((s) => s.title.toLowerCase().includes(q));
-            if (!matchTitle && !matchCode && !matchDesc && !matchSub) return false;
-          }
-          return true;
-        });
-      }, [initiatives, activeSpaceId, priorityFilter, searchQuery]);
-
-      const selectedInitiative = useMemo(
-        () => initiatives.find((i) => i.id === selectedInitId) || null,
-        [initiatives, selectedInitId]
-      );
-
-      const spaceCounts = useMemo(() => {
-        const counts = { all: initiatives.length };
-        spaces.forEach((s) => {
-          counts[s.id] = initiatives.filter((i) => i.spaceId === s.id).length;
-        });
-        return counts;
-      }, [initiatives, spaces]);
-
-      // --- ACTIONS ---
-
-      const openQuickAdd = (defaultStatus = 'in-progress') => {
-        setQaTitle('');
-        setQaSpaceId(activeSpaceId !== 'all' ? activeSpaceId : spaces[0]?.id || 'work');
-        setQaStatus(defaultStatus);
-        setQaPriority('medium');
-        setQaDate('');
-        setQaDesc('');
-        setQuickAddOpen(true);
-        setTimeout(() => qaTitleRef.current?.focus(), 60);
-      };
-
-      const handleCreateInitiative = (e) => {
-        e.preventDefault();
-        if (!qaTitle.trim()) return;
-        const sp = spaceMap[qaSpaceId] || spaces[0];
-        const prefix = (sp?.name || 'ORB').slice(0, 3).toUpperCase();
-        const code = `${prefix}-${Math.floor(100 + Math.random() * 899)}`;
-
-        const created = {
-          id: `init-${Date.now()}`,
-          code,
-          title: qaTitle.trim(),
-          spaceId: qaSpaceId,
-          status: qaStatus,
-          priority: qaPriority,
-          targetDate: qaDate,
-          description: qaDesc.trim(),
-          subtasks: [],
-          updatedAt: new Date().toISOString(),
-        };
-
-        setInitiatives((prev) => [created, ...prev]);
-        setQuickAddOpen(false);
-        showToast(`Created ${code}`);
-      };
-
-      const handleCreateSpace = (e) => {
-        e.preventDefault();
-        if (!nsName.trim()) return;
-        const id =
-          nsName
-            .trim()
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-') +
-          '-' +
-          Date.now().toString().slice(-3);
-
-        const created = {
-          id,
-          name: nsName.trim(),
-          icon: nsIcon,
-          color: nsColor,
-        };
-
-        setSpaces((prev) => [...prev, created]);
-        setActiveSpaceId(id);
-        setNsName('');
-        setNewSpaceOpen(false);
-        showToast(`Created "${created.name}" space`);
-      };
-
-      const updateInitiative = (id, patch) => {
-        setInitiatives((prev) =>
-          prev.map((item) =>
-            item.id === id ? { ...item, ...patch, updatedAt: new Date().toISOString() } : item
-          )
-        );
-      };
-
-      const cycleStatus = (e, item) => {
-        e.stopPropagation();
-        const next = STATUS_ORDER[(STATUS_ORDER.indexOf(item.status) + 1) % STATUS_ORDER.length];
-        updateInitiative(item.id, { status: next });
-      };
-
-      const cyclePriority = (e, item) => {
-        e.stopPropagation();
-        const next =
-          PRIORITY_ORDER[(PRIORITY_ORDER.indexOf(item.priority) + 1) % PRIORITY_ORDER.length];
-        updateInitiative(item.id, { priority: next });
-      };
-
-      const toggleSubtask = (initId, subId) => {
-        setInitiatives((prev) =>
-          prev.map((item) => {
-            if (item.id !== initId) return item;
-            return {
-              ...item,
-              subtasks: (item.subtasks || []).map((st) =>
-                st.id === subId ? { ...st, completed: !st.completed } : st
-              ),
-              updatedAt: new Date().toISOString(),
-            };
-          })
-        );
-      };
-
-      const handleAddSubtask = (e) => {
-        e.preventDefault();
-        if (!selectedInitiative || !newSubtaskTitle.trim()) return;
-        const st = {
-          id: `sub-${Date.now()}`,
-          title: newSubtaskTitle.trim(),
-          completed: false,
-        };
-        updateInitiative(selectedInitiative.id, {
-          subtasks: [...(selectedInitiative.subtasks || []), st],
-        });
-        setNewSubtaskTitle('');
-      };
-
-      const deleteSubtask = (subId) => {
-        if (!selectedInitiative) return;
-        updateInitiative(selectedInitiative.id, {
-          subtasks: (selectedInitiative.subtasks || []).filter((s) => s.id !== subId),
-        });
-      };
-
-      const deleteInitiative = (id) => {
-        setInitiatives((prev) => prev.filter((i) => i.id !== id));
-        if (selectedInitId === id) setSelectedInitId(null);
-        showToast('Initiative deleted');
-      };
-
-      const saveSyncConfig = (e) => {
-        e.preventDefault();
-        const nextCfg = {
-          url: draftUrl.trim(),
-          anonKey: draftKey.trim(),
-          workspaceId: draftWorkspace.trim(),
-        };
-        setSyncConfig(nextCfg);
-        localStorage.setItem('orbit_supabase_cfg_v1', JSON.stringify(nextCfg));
-        setSyncModalOpen(false);
-        if (nextCfg.url && nextCfg.anonKey && nextCfg.workspaceId) {
-          showToast('Cloud Sync connected');
-        } else {
-          showToast('Switched to Local Only');
-        }
-      };
-
-      const copySqlSetup = () => {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(SUPABASE_SQL_SNIPPET).then(() => {
-            showToast('SQL copied to clipboard');
-          });
-        } else {
-          const el = document.createElement('textarea');
-          el.value = SUPABASE_SQL_SNIPPET;
-          document.body.appendChild(el);
-          el.select();
-          document.execCommand('copy');
-          document.body.removeChild(el);
-          showToast('SQL copied to clipboard');
-        }
-      };
-
-      const formatShortDate = (dateStr) => {
-        if (!dateStr) return null;
-        const d = new Date(dateStr + 'T00:00:00');
-        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      };
-
-      const activeSpaceObj = activeSpaceId === 'all' ? null : spaceMap[activeSpaceId];
-
-      // Sync Status Pill Helper
-      const renderSyncPill = (compact = false) => {
-        let dotClass = 'bg-slate-500';
-        let label = 'Local Only';
-        let textClass = 'text-slate-400';
-
-        if (syncStatus === 'syncing') {
-          dotClass = 'bg-amber-400 animate-pulse';
-          label = 'Syncing...';
-          textClass = 'text-amber-300';
-        } else if (syncStatus === 'synced') {
-          dotClass = 'bg-emerald-400';
-          label = 'Synced';
-          textClass = 'text-emerald-300';
-        } else if (syncStatus === 'error') {
-          dotClass = 'bg-rose-500';
-          label = 'Sync Error';
-          textClass = 'text-rose-300';
-        }
-
-        return (
-          <button
-            onClick={() => {
-              setDraftUrl(syncConfig.url);
-              setDraftKey(syncConfig.anonKey);
-              setDraftWorkspace(syncConfig.workspaceId);
-              setSyncModalOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#191c23] hover:bg-[#222630] border border-[#23262f] text-[12px] font-medium transition-colors min-h-[34px]"
-            title="Configure Cross-Device Supabase Sync"
-          >
-            <span className={`w-2 h-2 rounded-full shrink-0 ${dotClass}`} />
-            {!compact && <span className={textClass}>{label}</span>}
-          </button>
-        );
-      };
-
-      return (
-        <div className="h-[100dvh] w-full flex overflow-hidden bg-[#0d0e11] text-slate-100">
-          
-          {/* ========================================================== */}
-          {/* DESKTOP LEFT SIDEBAR (Hidden on iPhone / Mobile < md)      */}
-          {/* ========================================================== */}
-          <aside
-            className={`hidden md:flex flex-col border-r border-[#23262f] bg-[#14161b] transition-all duration-200 shrink-0 ${
-              sidebarCollapsed ? 'w-[68px]' : 'w-60'
-            }`}
-          >
-            {/* Brand Header */}
-            <div className="h-14 px-3.5 flex items-center justify-between border-b border-[#23262f]/80 shrink-0">
-              <div className="flex items-center gap-2.5 overflow-hidden">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-sm shrink-0">
-                  <Icon name="layers" className="w-4 h-4" />
-                </div>
-                {!sidebarCollapsed && (
-                  <div className="truncate">
-                    <div className="text-[13.5px] font-semibold tracking-tight text-white leading-none">
-                      Orbit
-                    </div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">Personal OS</div>
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-[#23262f] transition-colors"
-                title="Toggle Sidebar ([)"
-              >
-                <Icon name="sliders" className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Quick Add Initiative Button */}
-            <div className="p-3 shrink-0">
-              <button
-                onClick={() => openQuickAdd()}
-                className={`w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[#191c23] hover:bg-[#20242e] border border-[#23262f] hover:border-indigo-500/40 text-slate-200 text-[13px] font-medium transition-all ${
-                  sidebarCollapsed ? 'px-0' : ''
-                }`}
-                title="New Initiative (C)"
-              >
-                <Icon name="plus" className="w-4 h-4 text-indigo-400 shrink-0" />
-                {!sidebarCollapsed && (
-                  <>
-                    <span className="flex-1 text-left">New Initiative</span>
-                    <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0d0e11] text-slate-400 border border-[#23262f]">
-                      C
-                    </kbd>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Navigation Spaces */}
-            <div className="flex-1 overflow-y-auto px-2.5 py-1 space-y-5">
-              <div>
-                <button
-                  onClick={() => setActiveSpaceId('all')}
-                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors ${
-                    activeSpaceId === 'all'
-                      ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/20'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-[#191c23] border border-transparent'
-                  }`}
-                >
-                  <Icon name="compass" className="w-4 h-4 shrink-0" />
-                  {!sidebarCollapsed && (
-                    <>
-                      <span className="flex-1 text-left truncate">All Initiatives</span>
-                      <span className="text-[11px] font-mono text-slate-500">
-                        {spaceCounts.all || 0}
-                      </span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <div className="space-y-1">
-                {!sidebarCollapsed && (
-                  <div className="px-2.5 flex items-center justify-between">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                      Spaces
-                    </span>
-                    <button
-                      onClick={() => setNewSpaceOpen(true)}
-                      className="p-0.5 rounded text-slate-500 hover:text-slate-200 hover:bg-[#23262f]"
-                      title="Add Custom Space"
-                    >
-                      <Icon name="plus" className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )}
-
-                <div className="space-y-0.5">
-                  {spaces.map((sp) => {
-                    const colorObj = getColorObj(sp.color);
-                    const isActive = activeSpaceId === sp.id;
-                    return (
-                      <button
-                        key={sp.id}
-                        onClick={() => setActiveSpaceId(sp.id)}
-                        className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors ${
-                          isActive
-                            ? 'bg-[#191c23] text-white border border-[#23262f]'
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-[#191c23]/60 border border-transparent'
-                        }`}
-                      >
-                        <span className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${colorObj.soft} ${colorObj.text}`}>
-                          <Icon name={sp.icon} className="w-3.5 h-3.5" />
-                        </span>
-                        {!sidebarCollapsed && (
-                          <>
-                            <span className="flex-1 text-left truncate">{sp.name}</span>
-                            <span className="text-[11px] font-mono text-slate-500">
-                              {spaceCounts[sp.id] || 0}
-                            </span>
-                          </>
-                        )}
-                      </button>
-                    );
-                  })}
-
-                  <button
-                    onClick={() => setNewSpaceOpen(true)}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-slate-500 hover:text-slate-300 hover:bg-[#191c23]/60 transition-colors"
-                  >
-                    <Icon name="folder-plus" className="w-4 h-4 shrink-0" />
-                    {!sidebarCollapsed && <span>New Space</span>}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Desktop Sidebar Footer: Cloud Sync Status */}
-            <div className="p-3 border-t border-[#23262f]/80 shrink-0">
-              {sidebarCollapsed ? (
-                <div className="flex justify-center">{renderSyncPill(true)}</div>
-              ) : (
-                <div className="flex items-center justify-between gap-2">
-                  {renderSyncPill(false)}
-                  {syncStatus === 'synced' && (
-                    <button
-                      onClick={() => pullFromSupabase(syncConfig, false)}
-                      className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#191c23] border border-transparent hover:border-[#23262f] transition-colors"
-                      title="Force Refresh from Cloud"
-                    >
-                      <Icon name="refresh" className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </aside>
-
-          {/* ========================================================== */}
-          {/* MAIN WORKSPACE AREA                                        */}
-          {/* ========================================================== */}
-          <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-            
-            {/* TOP HEADER (Mobile Safe-Area + Desktop Header) */}
-            <header className="pt-safe px-4 md:px-6 pb-3 md:pb-0 md:h-14 border-b border-[#23262f] bg-[#14161b]/90 backdrop-blur-md flex items-center justify-between gap-2 shrink-0">
-              {/* Left: Space Title & Count */}
-              <div className="flex items-center gap-2.5 min-w-0">
-                {activeSpaceObj ? (
-                  <>
-                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${getColorObj(activeSpaceObj.color).soft} ${getColorObj(activeSpaceObj.color).text}`}>
-                      <Icon name={activeSpaceObj.icon} className="w-4 h-4" />
-                    </span>
-                    <h1 className="text-[16px] font-semibold tracking-tight text-white truncate">
-                      {activeSpaceObj.name}
-                    </h1>
-                  </>
-                ) : (
-                  <>
-                    <span className="w-7 h-7 rounded-lg flex items-center justify-center bg-indigo-500/15 text-indigo-400 shrink-0">
-                      <Icon name="compass" className="w-4 h-4" />
-                    </span>
-                    <h1 className="text-[16px] font-semibold tracking-tight text-white truncate">
-                      All Initiatives
-                    </h1>
-                  </>
-                )}
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-mono bg-[#191c23] border border-[#23262f] text-slate-400">
-                  {filteredInitiatives.length}
-                </span>
-              </div>
-
-              {/* Right Controls */}
-              <div className="flex items-center gap-2">
-                {/* Mobile Sync Pill */}
-                <div className="md:hidden">{renderSyncPill(true)}</div>
-
-                {/* Mobile Search Toggle */}
-                <button
-                  onClick={() => setMobileSearchOpen((prev) => !prev)}
-                  className={`md:hidden p-2 rounded-lg border min-h-[38px] min-w-[38px] flex items-center justify-center transition-colors ${
-                    mobileSearchOpen || searchQuery
-                      ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300'
-                      : 'bg-[#191c23] border-[#23262f] text-slate-400'
-                  }`}
-                  aria-label="Search"
-                >
-                  <Icon name="search" className="w-4 h-4" />
-                </button>
-
-                {/* Desktop Search Input */}
-                <div className="relative hidden md:flex items-center">
-                  <Icon name="search" className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search initiatives..."
-                    className="w-52 lg:w-64 pl-8 pr-11 py-1.5 text-[13px] rounded-lg bg-[#0d0e11] border border-[#23262f] focus:border-indigo-500/60 focus:outline-none text-slate-200 placeholder:text-slate-500 transition-colors"
-                  />
-                  {searchQuery ? (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-2.5 text-slate-500 hover:text-slate-300"
-                    >
-                      <Icon name="x" className="w-3.5 h-3.5" />
-                    </button>
-                  ) : (
-                    <kbd className="absolute right-2 text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#14161b] text-slate-500 border border-[#23262f]">
-                      ⌘K
-                    </kbd>
-                  )}
-                </div>
-
-                {/* List vs Board View Switcher */}
-                <div className="flex items-center p-0.5 rounded-lg bg-[#0d0e11] border border-[#23262f]">
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-colors min-h-[32px] ${
-                      viewMode === 'list'
-                        ? 'bg-[#191c23] text-white shadow-xs'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                    title="List View (1)"
-                  >
-                    <Icon name="list" className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">List</span>
-                  </button>
-                  <button
-                    onClick={() => setViewMode('board')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-colors min-h-[32px] ${
-                      viewMode === 'board'
-                        ? 'bg-[#191c23] text-white shadow-xs'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                    title="Board View (2)"
-                  >
-                    <Icon name="kanban" className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Board</span>
-                  </button>
-                </div>
-
-                {/* Primary + Add Button */}
-                <button
-                  onClick={() => openQuickAdd()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-[13px] font-medium transition-colors min-h-[38px] md:min-h-[34px] shrink-0"
-                >
-                  <Icon name="plus" className="w-4 h-4" />
-                  <span className="hidden sm:inline">New</span>
-                </button>
-              </div>
-            </header>
-
-            {/* COLLAPSIBLE MOBILE SEARCH & FILTER BAR */}
-            {(mobileSearchOpen || priorityFilter !== 'all') && (
-              <div className="px-4 py-2.5 bg-[#14161b] border-b border-[#23262f] flex items-center gap-2 shrink-0 md:hidden">
-                <div className="relative flex-1">
-                  <Icon name="search" className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Filter initiatives..."
-                    autoFocus
-                    className="w-full pl-8 pr-8 py-2 text-[13px] rounded-lg bg-[#0d0e11] border border-[#23262f] focus:border-indigo-500 focus:outline-none text-white"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
-                    >
-                      <Icon name="x" className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-                <select
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="text-[12px] px-2.5 py-2 rounded-lg bg-[#0d0e11] border border-[#23262f] text-slate-300"
-                >
-                  <option value="all">Priority</option>
-                  {PRIORITY_ORDER.map((p) => (
-                    <option key={p} value={p}>{PRIORITY_CONFIG[p].label}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* DESKTOP SUB-BAR FILTER PILLS */}
-            <div className="hidden md:flex px-6 py-2.5 border-b border-[#23262f]/70 bg-[#0d0e11] items-center justify-between gap-2 shrink-0">
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                <button
-                  onClick={() => setActiveSpaceId('all')}
-                  className={`px-2.5 py-1 rounded-full text-[12px] font-medium transition-colors ${
-                    activeSpaceId === 'all'
-                      ? 'bg-slate-100 text-slate-900'
-                      : 'bg-[#14161b] text-slate-400 hover:text-slate-200 border border-[#23262f]'
-                  }`}
-                >
-                  All
-                </button>
-                {spaces.map((sp) => {
-                  const colorObj = getColorObj(sp.color);
-                  const active = activeSpaceId === sp.id;
-                  return (
-                    <button
-                      key={sp.id}
-                      onClick={() => setActiveSpaceId(sp.id)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium transition-colors ${
-                        active
-                          ? 'bg-slate-100 text-slate-900'
-                          : 'bg-[#14161b] text-slate-400 hover:text-slate-200 border border-[#23262f]'
-                      }`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${colorObj.dot}`} />
-                      <span>{sp.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <select
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="text-[12px] px-2.5 py-1 rounded-lg bg-[#14161b] border border-[#23262f] text-slate-300 focus:outline-none cursor-pointer"
-                >
-                  <option value="all">All Priorities</option>
-                  {PRIORITY_ORDER.map((p) => (
-                    <option key={p} value={p}>{PRIORITY_CONFIG[p].label}</option>
-                  ))}
-                </select>
-                {(priorityFilter !== 'all' || searchQuery) && (
-                  <button
-                    onClick={() => {
-                      setPriorityFilter('all');
-                      setSearchQuery('');
-                    }}
-                    className="text-[12px] text-indigo-400 hover:underline"
-                  >
-                    Reset
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* ========================================================== */}
-            {/* CONTENT CANVAS: LIST VIEW OR KANBAN BOARD VIEW             */}
-            {/* ========================================================== */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden pb-mobile-nav md:pb-8">
-              {filteredInitiatives.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-[#14161b] border border-[#23262f] flex items-center justify-center text-slate-500 mb-3">
-                    <Icon name="layers" className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-[15px] font-medium text-slate-200">No initiatives here yet</h3>
-                  <p className="text-[13px] text-slate-500 max-w-xs mt-1">
-                    {searchQuery || priorityFilter !== 'all'
-                      ? 'Clear your search or priority filters to view items.'
-                      : 'Tap New to add an initiative to this space.'}
-                  </p>
-                  <button
-                    onClick={() => openQuickAdd()}
-                    className="mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-medium min-h-[44px]"
-                  >
-                    <Icon name="plus" className="w-4 h-4" />
-                    <span>Create Initiative</span>
-                  </button>
-                </div>
-              ) : viewMode === 'list' ? (
-                /* --- GROUPED LIST VIEW (Desktop rows + stacked compact mobile cards) --- */
-                <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-5">
-                  {STATUS_ORDER.map((statusKey) => {
-                    const groupItems = filteredInitiatives.filter((i) => i.status === statusKey);
-                    if (groupItems.length === 0) return null;
-
-                    const meta = STATUS_CONFIG[statusKey];
-                    const isCollapsed = !!collapsedGroups[statusKey];
-
-                    return (
-                      <div
-                        key={statusKey}
-                        className="rounded-xl border border-[#23262f] bg-[#14161b] overflow-hidden"
-                      >
-                        {/* Group Header */}
-                        <div
-                          onClick={() =>
-                            setCollapsedGroups((prev) => ({
-                              ...prev,
-                              [statusKey]: !prev[statusKey],
-                            }))
-                          }
-                          className="px-3.5 py-2.5 bg-[#191c23]/80 border-b border-[#23262f] flex items-center justify-between cursor-pointer select-none min-h-[42px]"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Icon
-                              name={isCollapsed ? 'chevron-right' : 'chevron-down'}
-                              className="w-4 h-4 text-slate-500"
-                            />
-                            <StatusGlyph status={statusKey} className="w-4 h-4" />
-                            <span className="text-[13px] font-semibold text-slate-200">
-                              {meta.label}
-                            </span>
-                            <span className="text-[11.5px] font-mono text-slate-500 ml-0.5">
-                              {groupItems.length}
-                            </span>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openQuickAdd(statusKey);
-                            }}
-                            className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-[#23262f]"
-                            title={`Add to ${meta.label}`}
-                          >
-                            <Icon name="plus" className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        {/* Group Items */}
-                        {!isCollapsed && (
-                          <div className="divide-y divide-[#23262f]/70">
-                            {groupItems.map((item) => {
-                              const sp = spaceMap[item.spaceId];
-                              const spColor = getColorObj(sp?.color);
-                              const progress = getProgress(item);
-                              const doneSub = (item.subtasks || []).filter((s) => s.completed).length;
-                              const totalSub = (item.subtasks || []).length;
-
-                              return (
-                                <div
-                                  key={item.id}
-                                  onClick={() => setSelectedInitId(item.id)}
-                                  className="px-3.5 py-3 sm:py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 hover:bg-[#191c23] active:bg-[#1e222b] cursor-pointer transition-colors"
-                                >
-                                  {/* Primary Line: Priority + Status + Code + Title */}
-                                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                    <button
-                                      onClick={(e) => cyclePriority(e, item)}
-                                      className="p-1 -ml-1 rounded hover:bg-[#23262f] shrink-0 min-w-[28px] min-h-[28px] flex items-center justify-center"
-                                      title="Cycle Priority"
-                                    >
-                                      <PriorityGlyph priority={item.priority} />
-                                    </button>
-
-                                    <button
-                                      onClick={(e) => cycleStatus(e, item)}
-                                      className="p-0.5 rounded-full hover:scale-110 transition-transform shrink-0 min-w-[28px] min-h-[28px] flex items-center justify-center"
-                                      title="Cycle Status"
-                                    >
-                                      <StatusGlyph status={item.status} className="w-4 h-4" />
-                                    </button>
-
-                                    <span className="hidden md:inline-block font-mono text-[11px] text-slate-500 w-16 shrink-0">
-                                      {item.code}
-                                    </span>
-
-                                    <span
-                                      className={`text-[14px] sm:text-[13.5px] font-medium leading-snug truncate ${
-                                        item.status === 'done'
-                                          ? 'line-through text-slate-500'
-                                          : 'text-slate-100'
-                                      }`}
-                                    >
-                                      {item.title}
-                                    </span>
-                                  </div>
-
-                                  {/* Secondary Line (Stacked under title on mobile, right-aligned on desktop) */}
-                                  <div className="flex items-center justify-between sm:justify-end gap-3 pl-14 sm:pl-0 shrink-0">
-                                    <div className="flex items-center gap-2">
-                                      <span className="md:hidden font-mono text-[10.5px] text-slate-500">
-                                        {item.code}
-                                      </span>
-                                      {sp && (
-                                        <span
-                                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium ${spColor.soft} ${spColor.text}`}
-                                        >
-                                          <span className={`w-1.5 h-1.5 rounded-full ${spColor.dot}`} />
-                                          <span className="max-w-[85px] truncate">{sp.name}</span>
-                                        </span>
-                                      )}
-                                    </div>
-
-                                    <div className="flex items-center gap-3">
-                                      {totalSub > 0 && (
-                                        <div className="flex items-center gap-1.5 text-[11.5px] font-mono text-slate-400">
-                                          <ProgressRing progress={progress} size={15} />
-                                          <span>
-                                            {doneSub}/{totalSub}
-                                          </span>
-                                        </div>
-                                      )}
-
-                                      {item.targetDate && (
-                                        <span className="inline-flex items-center gap-1 text-[11.5px] font-mono text-slate-500">
-                                          <Icon name="calendar" className="w-3 h-3" />
-                                          {formatShortDate(item.targetDate)}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                /* --- KANBAN BOARD VIEW (Horizontal Scroll Snap on iPhone, 4-col Grid on Desktop) --- */
-                <div className="h-full px-3 sm:px-6 py-4 overflow-x-auto snap-x snap-mandatory md:snap-none">
-                  <div className="flex md:grid md:grid-cols-2 xl:grid-cols-4 gap-3.5 min-h-full items-start">
-                    {STATUS_ORDER.map((statusKey) => {
-                      const colItems = filteredInitiatives.filter((i) => i.status === statusKey);
-                      const meta = STATUS_CONFIG[statusKey];
-                      const isOver = dragOverCol === statusKey;
-
-                      return (
-                        <div
-                          key={statusKey}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            if (dragOverCol !== statusKey) setDragOverCol(statusKey);
-                          }}
-                          onDragLeave={() => setDragOverCol(null)}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            if (draggedId) updateInitiative(draggedId, { status: statusKey });
-                            setDraggedId(null);
-                            setDragOverCol(null);
-                          }}
-                          className={`w-[84vw] sm:w-[320px] md:w-auto shrink-0 snap-center rounded-xl border p-2.5 flex flex-col min-h-[340px] transition-colors ${
-                            isOver
-                              ? 'bg-indigo-950/25 border-indigo-500/50'
-                              : 'bg-[#14161b] border-[#23262f]'
-                          }`}
-                        >
-                          {/* Column Header */}
-                          <div className="px-1.5 py-1.5 mb-2 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <StatusGlyph status={statusKey} className="w-4 h-4" />
-                              <span className="text-[13px] font-semibold text-slate-200">
-                                {meta.label}
-                              </span>
-                              <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-full bg-[#0d0e11] text-slate-400 border border-[#23262f]">
-                                {colItems.length}
-                              </span>
-                            </div>
-                            <button
-                              onClick={() => openQuickAdd(statusKey)}
-                              className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-[#23262f]"
-                            >
-                              <Icon name="plus" className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-
-                          {/* Cards */}
-                          <div className="space-y-2.5 flex-1">
-                            {colItems.map((item) => {
-                              const sp = spaceMap[item.spaceId];
-                              const spColor = getColorObj(sp?.color);
-                              const progress = getProgress(item);
-                              const doneSub = (item.subtasks || []).filter((s) => s.completed).length;
-                              const totalSub = (item.subtasks || []).length;
-
-                              return (
-                                <div
-                                  key={item.id}
-                                  draggable
-                                  onDragStart={() => setDraggedId(item.id)}
-                                  onClick={() => setSelectedInitId(item.id)}
-                                  className="p-3.5 rounded-xl bg-[#191c23] border border-[#23262f] hover:border-indigo-500/40 active:scale-[0.99] cursor-pointer transition-all group"
-                                >
-                                  <div className="flex items-center justify-between gap-2 mb-2">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="font-mono text-[10.5px] text-slate-500">
-                                        {item.code}
-                                      </span>
-                                      {sp && (
-                                        <span
-                                          className={`px-1.5 py-0.5 rounded text-[10.5px] font-medium ${spColor.soft} ${spColor.text}`}
-                                        >
-                                          {sp.name}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <button
-                                      onClick={(e) => cyclePriority(e, item)}
-                                      className="p-1 rounded hover:bg-[#23262f]"
-                                    >
-                                      <PriorityGlyph priority={item.priority} />
-                                    </button>
-                                  </div>
-
-                                  <h4
-                                    className={`text-[13.5px] font-medium leading-snug mb-3 ${
-                                      item.status === 'done'
-                                        ? 'line-through text-slate-500'
-                                        : 'text-slate-100'
-                                    }`}
-                                  >
-                                    {item.title}
-                                  </h4>
-
-                                  {totalSub > 0 && (
-                                    <div className="mb-3">
-                                      <div className="flex justify-between text-[11px] font-mono text-slate-500 mb-1">
-                                        <span>Milestones</span>
-                                        <span>
-                                          {doneSub}/{totalSub}
-                                        </span>
-                                      </div>
-                                      <div className="w-full h-1.5 rounded-full bg-[#0d0e11] overflow-hidden">
-                                        <div
-                                          className={`h-full rounded-full transition-all duration-300 ${
-                                            progress === 100 ? 'bg-emerald-400' : 'bg-indigo-500'
-                                          }`}
-                                          style={{ width: `${progress}%` }}
-                                        />
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  <div className="flex items-center justify-between pt-2 border-t border-[#23262f]/80 text-[11px] text-slate-500">
-                                    {item.targetDate ? (
-                                      <span className="inline-flex items-center gap-1 font-mono">
-                                        <Icon name="calendar" className="w-3 h-3" />
-                                        {formatShortDate(item.targetDate)}
-                                      </span>
-                                    ) : (
-                                      <span>No target date</span>
-                                    )}
-
-                                    <button
-                                      onClick={(e) => cycleStatus(e, item)}
-                                      className="inline-flex items-center gap-1 text-indigo-400 font-medium px-1.5 py-0.5 rounded hover:bg-indigo-500/10"
-                                    >
-                                      <span>Next</span>
-                                      <Icon name="arrow-right" className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          </main>
-
-          {/* ========================================================== */}
-          {/* MOBILE BOTTOM NAVIGATION BAR (iPhone One-Handed Dock)      */}
-          {/* ========================================================== */}
-          <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-[#14161b]/95 backdrop-blur-lg border-t border-[#23262f] px-2 pt-1.5 pb-safe">
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-              {/* All Initiatives Tab */}
-              <button
-                onClick={() => setActiveSpaceId('all')}
-                className={`flex flex-col items-center justify-center px-3 py-1.5 rounded-xl min-w-[62px] min-h-[46px] shrink-0 transition-colors ${
-                  activeSpaceId === 'all'
-                    ? 'bg-indigo-500/15 text-indigo-300'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Icon name="compass" className="w-4 h-4 mb-0.5" />
-                <span className="text-[10.5px] font-medium">All</span>
-              </button>
-
-              {/* Dynamic Spaces Tabs */}
-              {spaces.map((sp) => {
-                const colorObj = getColorObj(sp.color);
-                const isActive = activeSpaceId === sp.id;
-                return (
-                  <button
-                    key={sp.id}
-                    onClick={() => setActiveSpaceId(sp.id)}
-                    className={`flex flex-col items-center justify-center px-3 py-1.5 rounded-xl min-w-[64px] min-h-[46px] shrink-0 transition-colors ${
-                      isActive
-                        ? 'bg-[#191c23] text-white border border-[#23262f]'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <span className={isActive ? colorObj.text : ''}>
-                      <Icon name={sp.icon} className="w-4 h-4 mb-0.5" />
-                    </span>
-                    <span className="text-[10.5px] font-medium max-w-[64px] truncate">
-                      {sp.name}
-                    </span>
-                  </button>
-                );
-              })}
-
-              {/* Add Space Tab */}
-              <button
-                onClick={() => setNewSpaceOpen(true)}
-                className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl min-w-[60px] min-h-[46px] shrink-0 text-slate-500 hover:text-slate-300"
-              >
-                <Icon name="folder-plus" className="w-4 h-4 mb-0.5" />
-                <span className="text-[10.5px] font-medium">Space</span>
-              </button>
-
-              {/* Sync Settings Tab */}
-              <button
-                onClick={() => {
-                  setDraftUrl(syncConfig.url);
-                  setDraftKey(syncConfig.anonKey);
-                  setDraftWorkspace(syncConfig.workspaceId);
-                  setSyncModalOpen(true);
-                }}
-                className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl min-w-[60px] min-h-[46px] shrink-0 text-slate-400 hover:text-slate-200"
-              >
-                <div className="relative mb-0.5">
-                  <Icon name="cloud" className="w-4 h-4" />
-                  <span
-                    className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${
-                      syncStatus === 'synced'
-                        ? 'bg-emerald-400'
-                        : syncStatus === 'syncing'
-                        ? 'bg-amber-400'
-                        : syncStatus === 'error'
-                        ? 'bg-rose-500'
-                        : 'bg-slate-600'
-                    }`}
-                  />
-                </div>
-                <span className="text-[10.5px] font-medium">Sync</span>
-              </button>
-            </div>
-          </nav>
-
-          {/* ========================================================== */}
-          {/* INITIATIVE DETAIL SLIDE-OVER / FULL-SCREEN MOBILE SHEET    */}
-          {/* ========================================================== */}
-          {selectedInitiative && (
-            <div className="fixed inset-0 z-50 flex justify-end">
-              <div
-                className="fixed inset-0 bg-black/60 backdrop-blur-[2px]"
-                onClick={() => setSelectedInitId(null)}
-              />
-              <aside className="relative z-10 w-full md:w-[460px] h-full bg-[#14161b] border-l border-[#23262f] flex flex-col shadow-2xl">
-                {/* Drawer Header */}
-                <div className="pt-safe px-4 md:px-5 pb-3 md:pb-0 md:h-14 border-b border-[#23262f] flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[12px] px-2 py-0.5 rounded bg-[#0d0e11] border border-[#23262f] text-slate-400">
-                      {selectedInitiative.code}
-                    </span>
-                    <span className="text-slate-600">•</span>
-                    <span className="text-[12.5px] text-slate-400">
-                      {spaceMap[selectedInitiative.spaceId]?.name || 'General'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => deleteInitiative(selectedInitiative.id)}
-                      className="p-2.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                      title="Delete Initiative"
-                    >
-                      <Icon name="trash" className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setSelectedInitId(null)}
-                      className="p-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#23262f] min-w-[44px] min-h-[44px] flex items-center justify-center"
-                      title="Close (Esc)"
-                    >
-                      <Icon name="x" className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Drawer Body */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 pb-safe">
-                  {/* Editable Title */}
-                  <input
-                    type="text"
-                    value={selectedInitiative.title}
-                    onChange={(e) =>
-                      updateInitiative(selectedInitiative.id, { title: e.target.value })
-                    }
-                    className="w-full text-lg sm:text-xl font-semibold bg-transparent border-none focus:outline-none text-white placeholder:text-slate-600"
-                    placeholder="Initiative title..."
-                  />
-
-                  {/* 2x2 Properties Grid */}
-                  <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-[#0d0e11] border border-[#23262f]">
-                    <div>
-                      <label className="block text-[11px] font-medium text-slate-500 mb-1">
-                        Status
-                      </label>
-                      <select
-                        value={selectedInitiative.status}
-                        onChange={(e) =>
-                          updateInitiative(selectedInitiative.id, { status: e.target.value })
-                        }
-                        className="w-full text-[13px] font-medium px-2.5 py-2 rounded-lg bg-[#14161b] border border-[#23262f] text-slate-200 focus:outline-none focus:border-indigo-500 min-h-[40px]"
-                      >
-                        {STATUS_ORDER.map((s) => (
-                          <option key={s} value={s}>
-                            {STATUS_CONFIG[s].label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-medium text-slate-500 mb-1">
-                        Priority
-                      </label>
-                      <select
-                        value={selectedInitiative.priority}
-                        onChange={(e) =>
-                          updateInitiative(selectedInitiative.id, { priority: e.target.value })
-                        }
-                        className="w-full text-[13px] font-medium px-2.5 py-2 rounded-lg bg-[#14161b] border border-[#23262f] text-slate-200 focus:outline-none focus:border-indigo-500 min-h-[40px]"
-                      >
-                        {PRIORITY_ORDER.map((p) => (
-                          <option key={p} value={p}>
-                            {PRIORITY_CONFIG[p].label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-medium text-slate-500 mb-1">
-                        Space
-                      </label>
-                      <select
-                        value={selectedInitiative.spaceId}
-                        onChange={(e) =>
-                          updateInitiative(selectedInitiative.id, { spaceId: e.target.value })
-                        }
-                        className="w-full text-[13px] font-medium px-2.5 py-2 rounded-lg bg-[#14161b] border border-[#23262f] text-slate-200 focus:outline-none focus:border-indigo-500 min-h-[40px]"
-                      >
-                        {spaces.map((sp) => (
-                          <option key={sp.id} value={sp.id}>
-                            {sp.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-medium text-slate-500 mb-1">
-                        Target Date
-                      </label>
-                      <input
-                        type="date"
-                        value={selectedInitiative.targetDate || ''}
-                        onChange={(e) =>
-                          updateInitiative(selectedInitiative.id, { targetDate: e.target.value })
-                        }
-                        className="w-full text-[13px] font-medium px-2.5 py-2 rounded-lg bg-[#14161b] border border-[#23262f] text-slate-200 focus:outline-none focus:border-indigo-500 min-h-[40px]"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Notes */}
-                  <div>
-                    <label className="block text-[12px] font-semibold text-slate-400 mb-1.5">
-                      Notes & Context
-                    </label>
-                    <textarea
-                      rows={4}
-                      value={selectedInitiative.description || ''}
-                      onChange={(e) =>
-                        updateInitiative(selectedInitiative.id, { description: e.target.value })
-                      }
-                      placeholder="Objectives, links, or notes..."
-                      className="w-full text-[14px] leading-relaxed p-3 rounded-xl bg-[#0d0e11] border border-[#23262f] text-slate-200 focus:outline-none focus:border-indigo-500/60 resize-none placeholder:text-slate-600"
-                    />
-                  </div>
-
-                  {/* Milestones / Subtasks */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-[12px] font-semibold text-slate-400">
-                        Milestones
-                      </label>
-                      <span className="text-[12px] font-mono text-indigo-400">
-                        {getProgress(selectedInitiative)}%
-                      </span>
-                    </div>
-
-                    <div className="w-full h-1.5 rounded-full bg-[#0d0e11] overflow-hidden mb-3.5">
-                      <div
-                        className={`h-full rounded-full transition-all duration-300 ${
-                          getProgress(selectedInitiative) === 100 ? 'bg-emerald-400' : 'bg-indigo-500'
-                        }`}
-                        style={{ width: `${getProgress(selectedInitiative)}%` }}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5 mb-3">
-                      {(selectedInitiative.subtasks || []).map((st) => (
-                        <div
-                          key={st.id}
-                          className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#0d0e11]/60 hover:bg-[#191c23] border border-transparent hover:border-[#23262f] min-h-[44px]"
-                        >
-                          <button
-                            onClick={() => toggleSubtask(selectedInitiative.id, st.id)}
-                            className="flex items-center gap-3 text-left flex-1 min-w-0"
-                          >
-                            {st.completed ? (
-                              <Icon name="check-circle" className="w-4 h-4 text-emerald-400 shrink-0" />
-                            ) : (
-                              <Icon name="circle" className="w-4 h-4 text-slate-600 shrink-0" />
-                            )}
-                            <span
-                              className={`text-[13.5px] leading-snug ${
-                                st.completed ? 'line-through text-slate-500' : 'text-slate-200'
-                              }`}
-                            >
-                              {st.title}
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => deleteSubtask(st.id)}
-                            className="p-2 text-slate-500 hover:text-rose-400"
-                          >
-                            <Icon name="x" className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-
-                    <form onSubmit={handleAddSubtask} className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={newSubtaskTitle}
-                        onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                        placeholder="Add milestone..."
-                        className="flex-1 text-[13.5px] px-3 py-2.5 rounded-xl bg-[#0d0e11] border border-[#23262f] focus:outline-none focus:border-indigo-500 text-white placeholder:text-slate-600 min-h-[44px]"
-                      />
-                      <button
-                        type="submit"
-                        disabled={!newSubtaskTitle.trim()}
-                        className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-[13px] font-medium min-h-[44px]"
-                      >
-                        Add
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              </aside>
-            </div>
-          )}
-
-          {/* ========================================================== */}
-          {/* QUICK CREATE INITIATIVE MODAL                              */}
-          {/* ========================================================== */}
-          {quickAddOpen && (
-            <div className="fixed inset-0 z-50 flex items-end sm:items-start justify-center sm:pt-24 p-0 sm:p-4 bg-black/70 backdrop-blur-[2px]">
-              <div className="w-full max-w-lg rounded-t-2xl sm:rounded-2xl bg-[#14161b] border border-[#23262f] shadow-2xl overflow-hidden pb-safe sm:pb-0">
-                <form onSubmit={handleCreateInitiative}>
-                  <div className="px-4 py-3 border-b border-[#23262f] flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 text-[12px] font-medium">
-                      New Initiative
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setQuickAddOpen(false)}
-                      className="p-2 text-slate-400 hover:text-white"
-                    >
-                      <Icon name="x" className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="p-4 space-y-3">
-                    <input
-                      ref={qaTitleRef}
-                      type="text"
-                      required
-                      value={qaTitle}
-                      onChange={(e) => setQaTitle(e.target.value)}
-                      placeholder="What do you want to achieve or build?"
-                      className="w-full text-[16px] font-medium bg-transparent border-none focus:outline-none text-white placeholder:text-slate-600"
-                    />
-
-                    <textarea
-                      rows={2}
-                      value={qaDesc}
-                      onChange={(e) => setQaDesc(e.target.value)}
-                      placeholder="Optional notes or definition of done..."
-                      className="w-full text-[13.5px] bg-transparent border-none focus:outline-none text-slate-300 placeholder:text-slate-600 resize-none"
-                    />
-
-                    <div className="flex flex-wrap items-center gap-2 pt-2">
-                      <select
-                        value={qaSpaceId}
-                        onChange={(e) => setQaSpaceId(e.target.value)}
-                        className="text-[12.5px] font-medium px-3 py-2 rounded-lg bg-[#191c23] border border-[#23262f] text-slate-200 min-h-[38px]"
-                      >
-                        {spaces.map((sp) => (
-                          <option key={sp.id} value={sp.id}>
-                            Space: {sp.name}
-                          </option>
-                        ))}
-                      </select>
-
-                      <select
-                        value={qaStatus}
-                        onChange={(e) => setQaStatus(e.target.value)}
-                        className="text-[12.5px] font-medium px-3 py-2 rounded-lg bg-[#191c23] border border-[#23262f] text-slate-200 min-h-[38px]"
-                      >
-                        {STATUS_ORDER.map((s) => (
-                          <option key={s} value={s}>
-                            {STATUS_CONFIG[s].label}
-                          </option>
-                        ))}
-                      </select>
-
-                      <select
-                        value={qaPriority}
-                        onChange={(e) => setQaPriority(e.target.value)}
-                        className="text-[12.5px] font-medium px-3 py-2 rounded-lg bg-[#191c23] border border-[#23262f] text-slate-200 min-h-[38px]"
-                      >
-                        {PRIORITY_ORDER.map((p) => (
-                          <option key={p} value={p}>
-                            {PRIORITY_CONFIG[p].label}
-                          </option>
-                        ))}
-                      </select>
-
-                      <input
-                        type="date"
-                        value={qaDate}
-                        onChange={(e) => setQaDate(e.target.value)}
-                        className="text-[12.5px] font-medium px-3 py-2 rounded-lg bg-[#191c23] border border-[#23262f] text-slate-200 min-h-[38px]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="px-4 py-3 bg-[#0d0e11] border-t border-[#23262f] flex items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setQuickAddOpen(false)}
-                      className="px-3.5 py-2 rounded-lg text-[13px] font-medium text-slate-400 hover:text-white min-h-[40px]"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-medium min-h-[40px]"
-                    >
-                      Create Initiative
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================== */}
-          {/* CREATE CUSTOM SPACE MODAL                                  */}
-          {/* ========================================================== */}
-          {newSpaceOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-[2px]">
-              <div className="w-full max-w-md rounded-2xl bg-[#14161b] border border-[#23262f] shadow-2xl overflow-hidden">
-                <form onSubmit={handleCreateSpace}>
-                  <div className="px-5 py-3.5 border-b border-[#23262f] flex items-center justify-between">
-                    <h3 className="text-[14px] font-semibold text-white">New Space</h3>
-                    <button
-                      type="button"
-                      onClick={() => setNewSpaceOpen(false)}
-                      className="p-1.5 text-slate-400 hover:text-white"
-                    >
-                      <Icon name="x" className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="p-5 space-y-4">
-                    <div>
-                      <label className="block text-[12px] font-medium text-slate-400 mb-1.5">
-                        Space Name
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        autoFocus
-                        value={nsName}
-                        onChange={(e) => setNsName(e.target.value)}
-                        placeholder="e.g., Side Projects, Fitness, Writing..."
-                        className="w-full text-[14px] px-3.5 py-2.5 rounded-xl bg-[#0d0e11] border border-[#23262f] focus:outline-none focus:border-indigo-500 text-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[12px] font-medium text-slate-400 mb-1.5">
-                        Color
-                      </label>
-                      <div className="flex items-center gap-3">
-                        {SPACE_COLORS.map((c) => (
-                          <button
-                            key={c.name}
-                            type="button"
-                            onClick={() => setNsColor(c.name)}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center ${c.dot} ${
-                              nsColor === c.name ? 'ring-2 ring-offset-2 ring-offset-[#14161b] ring-white' : 'opacity-75'
-                            }`}
-                          >
-                            {nsColor === c.name && <Icon name="check" className="w-4 h-4 text-white" />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[12px] font-medium text-slate-400 mb-1.5">
-                        Icon
-                      </label>
-                      <div className="grid grid-cols-4 gap-2">
-                        {SPACE_ICON_KEYS.map((key) => (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => setNsIcon(key)}
-                            className={`p-2.5 rounded-xl flex items-center justify-center border min-h-[44px] ${
-                              nsIcon === key
-                                ? 'border-indigo-500 bg-indigo-500/15 text-indigo-300'
-                                : 'border-[#23262f] bg-[#0d0e11] text-slate-400'
-                            }`}
-                          >
-                            <Icon name={key} className="w-4 h-4" />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="px-5 py-3 bg-[#0d0e11] border-t border-[#23262f] flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setNewSpaceOpen(false)}
-                      className="px-3.5 py-2 rounded-lg text-[13px] font-medium text-slate-400 min-h-[40px]"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-medium min-h-[40px]"
-                    >
-                      Create Space
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================== */}
-          {/* SUPABASE CROSS-DEVICE CLOUD SYNC MODAL                     */}
-          {/* ========================================================== */}
-          {syncModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-[2px]">
-              <div className="w-full max-w-lg max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-[#14161b] border border-[#23262f] shadow-2xl pb-safe sm:pb-0">
-                <div className="px-5 py-3.5 border-b border-[#23262f] flex items-center justify-between sticky top-0 bg-[#14161b] z-10">
-                  <div className="flex items-center gap-2">
-                    <Icon name="cloud" className="w-4 h-4 text-indigo-400" />
-                    <h3 className="text-[14.5px] font-semibold text-white">
-                      Cross-Device Cloud Sync (Free)
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => setSyncModalOpen(false)}
-                    className="p-2 text-slate-400 hover:text-white"
-                  >
-                    <Icon name="x" className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <form onSubmit={saveSyncConfig} className="p-5 space-y-4">
-                  <p className="text-[12.5px] text-slate-400 leading-relaxed">
-                    Connect a free <strong className="text-slate-200">Supabase</strong> project so your Mac/PC and iPhone sync initiatives in real time. Leave blank to stay in Local Only mode.
-                  </p>
-
-                  {/* 1-Click Copy SQL Setup Box */}
-                  <div className="rounded-xl bg-[#0d0e11] border border-[#23262f] p-3">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                        Step 1: Run Once in Supabase SQL Editor
-                      </span>
-                      <button
-                        type="button"
-                        onClick={copySqlSetup}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#191c23] hover:bg-[#23262f] text-[11px] font-medium text-indigo-300 border border-[#23262f]"
-                      >
-                        <Icon name="copy" className="w-3 h-3" />
-                        <span>Copy SQL</span>
-                      </button>
-                    </div>
-                    <pre className="text-[10.5px] font-mono text-slate-400 overflow-x-auto leading-relaxed">
-                      {SUPABASE_SQL_SNIPPET}
-                    </pre>
-                  </div>
-
-                  {/* Step 2: Credentials */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[11.5px] font-medium text-slate-400 mb-1">
-                        Supabase Project URL
-                      </label>
-                      <input
-                        type="url"
-                        value={draftUrl}
-                        onChange={(e) => setDraftUrl(e.target.value)}
-                        placeholder="https://xyzcompany.supabase.co"
-                        className="w-full text-[13px] font-mono px-3 py-2.5 rounded-xl bg-[#0d0e11] border border-[#23262f] focus:outline-none focus:border-indigo-500 text-white min-h-[42px]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11.5px] font-medium text-slate-400 mb-1">
-                        Supabase Anon Public Key
-                      </label>
-                      <input
-                        type="password"
-                        value={draftKey}
-                        onChange={(e) => setDraftKey(e.target.value)}
-                        placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
-                        className="w-full text-[13px] font-mono px-3 py-2.5 rounded-xl bg-[#0d0e11] border border-[#23262f] focus:outline-none focus:border-indigo-500 text-white min-h-[42px]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11.5px] font-medium text-slate-400 mb-1">
-                        Personal Sync Passphrase (Use same on Computer & iPhone)
-                      </label>
-                      <input
-                        type="text"
-                        value={draftWorkspace}
-                        onChange={(e) => setDraftWorkspace(e.target.value)}
-                        placeholder="e.g., alex-orbit-secret-2026"
-                        className="w-full text-[13px] font-mono px-3 py-2.5 rounded-xl bg-[#0d0e11] border border-[#23262f] focus:outline-none focus:border-indigo-500 text-white min-h-[42px]"
-                      />
-                    </div>
-                  </div>
-
-                  {syncErrorMsg && (
-                    <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-[12px] text-rose-300">
-                      {syncErrorMsg}
-                    </div>
-                  )}
-
-                  {/* Manual Push / Pull Controls when connected */}
-                  {syncConfig.url && syncConfig.anonKey && syncConfig.workspaceId && (
-                    <div className="flex items-center justify-between pt-1 border-t border-[#23262f]">
-                      <span className="text-[11px] text-slate-500">
-                        {lastSyncedAt
-                          ? `Last synced ${lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                          : 'Connected'}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => pullFromSupabase(syncConfig, false)}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#191c23] hover:bg-[#23262f] border border-[#23262f] text-[11.5px] font-medium text-slate-300"
-                        >
-                          Force Pull
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => pushToSupabase(spaces, initiatives, syncConfig)}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#191c23] hover:bg-[#23262f] border border-[#23262f] text-[11.5px] font-medium text-slate-300"
-                        >
-                          Force Push
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-end gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setSyncModalOpen(false)}
-                      className="px-3.5 py-2 rounded-lg text-[13px] font-medium text-slate-400 hover:text-white min-h-[42px]"
-                    >
-                      Close
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[13px] font-medium min-h-[42px]"
-                    >
-                      Save & Connect
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================== */}
-          {/* FLOATING TOAST FEEDBACK                                    */}
-          {/* ========================================================== */}
-          {toast && (
-            <div className="fixed top-16 md:top-auto md:bottom-5 right-4 z-50 px-3.5 py-2 rounded-xl bg-slate-100 text-slate-900 text-[12.5px] font-medium shadow-xl flex items-center gap-2">
-              <Icon name="check-circle" className="w-4 h-4 text-emerald-600" />
-              <span>{toast}</span>
-            </div>
-          )}
+grant all on table orbit_workspaces to anon, authenticated;
+alter publication supabase_realtime add table orbit_workspaces;</pre>
+      </div>
+
+      <!-- Sync Credentials Form -->
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Supabase Project URL</label>
+          <input id="sync-url-input" type="url" placeholder="https://xyzcompany.supabase.co" class="w-full px-3 py-2 text-xs font-mono bg-[#0C0E14] border border-[#232838] focus:border-indigo-500 focus:outline-none rounded-xl text-white placeholder-slate-600" />
         </div>
-      );
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Supabase Anon Public Key</label>
+          <input id="sync-key-input" type="password" placeholder="sb_publishable_... or eyJ..." class="w-full px-3 py-2 text-xs font-mono bg-[#0C0E14] border border-[#232838] focus:border-indigo-500 focus:outline-none rounded-xl text-white placeholder-slate-600" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Personal Sync Passphrase (Use same on Computer & iPhone)</label>
+          <input id="sync-pass-input" type="text" placeholder="e.g., velvet-canyon-orbit-8492" class="w-full px-3 py-2 text-xs font-mono bg-[#0C0E14] border border-[#232838] focus:border-indigo-500 focus:outline-none rounded-xl text-white placeholder-slate-600" />
+        </div>
+
+        <!-- Error Banner -->
+        <div id="sync-error-banner" class="hidden px-3 py-2 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs"></div>
+
+        <!-- Manual Pull / Push Row -->
+        <div class="pt-1 flex items-center justify-between">
+          <span id="sync-modal-status" class="text-xs text-slate-400">Not connected</span>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="forcePull()" class="px-3 py-1.5 rounded-xl bg-[#181C28] hover:bg-[#222738] border border-[#282E42] text-xs font-medium text-slate-200 transition">Force Pull</button>
+            <button type="button" onclick="forcePush()" class="px-3 py-1.5 rounded-xl bg-[#181C28] hover:bg-[#222738] border border-[#282E42] text-xs font-medium text-slate-200 transition">Force Push</button>
+          </div>
+        </div>
+
+        <!-- Footer Buttons -->
+        <div class="pt-2 border-t border-[#1E2230] flex items-center justify-end gap-2">
+          <button type="button" onclick="closeSyncModal()" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-[#1B1F2E] transition">Close</button>
+          <button type="button" onclick="saveAndConnectSync()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/25 transition">Save & Connect</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-18 md:bottom-5 right-4 z-50 px-3.5 py-2 rounded-xl bg-[#1A1E2E] border border-[#2C334D] text-xs font-medium text-white shadow-xl opacity-0 pointer-events-none transition-opacity duration-200"></div>
+
+  <!-- ==================== APPLICATION LOGIC ==================== -->
+  <script>
+    // ---------- STATE & CONSTANTS ----------
+    const STORAGE_KEY = 'orbit_personal_os_v2';
+    const SYNC_CONFIG_KEY = 'orbit_supabase_sync_v1';
+
+    const STATUSES = ['In Progress', 'Review', 'Backlog', 'Done'];
+    const BOARD_STATUSES = ['Backlog', 'In Progress', 'Review', 'Done'];
+    const PRIORITIES = ['Urgent', 'High', 'Medium', 'Low'];
+
+    const SPACE_COLORS = {
+      indigo: { dot: 'bg-indigo-500', pill: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30', text: 'text-indigo-400' },
+      blue:   { dot: 'bg-blue-500',   pill: 'bg-blue-500/15 text-blue-300 border-blue-500/30',       text: 'text-blue-400' },
+      amber:  { dot: 'bg-amber-500',  pill: 'bg-amber-500/15 text-amber-300 border-amber-500/30',    text: 'text-amber-400' },
+      rose:   { dot: 'bg-rose-500',   pill: 'bg-rose-500/15 text-rose-300 border-rose-500/30',       text: 'text-rose-400' },
+      emerald:{ dot: 'bg-emerald-500',pill: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30', text: 'text-emerald-400' },
+      purple: { dot: 'bg-purple-500', pill: 'bg-purple-500/15 text-purple-300 border-purple-500/30', text: 'text-purple-400' },
+    };
+
+    const DEFAULT_DATA = {
+      spaces: [
+        { id: 'Work', name: 'Work', color: 'indigo', prefix: 'WRK' },
+        { id: 'School', name: 'School', color: 'blue', prefix: 'SCH' },
+        { id: 'Learning', name: 'Learning', color: 'amber', prefix: 'LRN' },
+        { id: 'Life', name: 'Life', color: 'rose', prefix: 'LIF' },
+      ],
+      initiatives: [
+        {
+          id: 'init-1',
+          code: 'SCH-162',
+          title: 'CS 162: Operating Systems',
+          space: 'School',
+          status: 'In Progress',
+          priority: 'High',
+          dueDate: offsetDate(14),
+          notes: 'Fall semester core systems class. Track Pintos projects, Gradescope problem sets, and midterm prep here.',
+          expanded: true,
+          subInitiatives: [
+            { id: 'sub-101', code: 'SCH-162.1', title: 'Project 1: Threads & Priority Scheduling (Gradescope)', status: 'In Progress', priority: 'Urgent', dueDate: offsetDate(2), notes: 'Pass alarm-priority and priority-donate-chain tests.' },
+            { id: 'sub-102', code: 'SCH-162.2', title: 'Homework 2: Synchronization & Locks (Canvas)', status: 'Review', priority: 'High', dueDate: offsetDate(4), notes: 'Double-check deadlock proof on problem 3.' },
+            { id: 'sub-103', code: 'SCH-162.3', title: 'Read Chapters 4–5: Virtual Memory & Paging', status: 'Backlog', priority: 'Medium', dueDate: offsetDate(8), notes: '' },
+            { id: 'sub-104', code: 'SCH-162.4', title: 'Lab 1: Shell & File Descriptors', status: 'Done', priority: 'Medium', dueDate: offsetDate(-3), notes: 'Submitted 100/100.' },
+          ]
+        },
+        {
+          id: 'init-2',
+          code: 'WRK-101',
+          title: 'Q4 API Performance & Caching Migration',
+          space: 'Work',
+          status: 'In Progress',
+          priority: 'Urgent',
+          dueDate: offsetDate(10),
+          notes: 'Reduce p99 latency under 85ms across core endpoints.',
+          expanded: true,
+          subInitiatives: [
+            { id: 'sub-201', code: 'WRK-101.1', title: 'Benchmark Redis cluster read-replica failover', status: 'Done', priority: 'High', dueDate: offsetDate(-2), notes: '' },
+            { id: 'sub-202', code: 'WRK-101.2', title: 'Roll out stale-while-revalidate headers on /feed', status: 'In Progress', priority: 'Urgent', dueDate: offsetDate(1), notes: '' },
+            { id: 'sub-203', code: 'WRK-101.3', title: 'Write post-migration latency report for eng review', status: 'Backlog', priority: 'Medium', dueDate: offsetDate(6), notes: '' },
+          ]
+        },
+        {
+          id: 'init-3',
+          code: 'SCH-302',
+          title: 'Distributed Systems Capstone Paper',
+          space: 'School',
+          status: 'Review',
+          priority: 'High',
+          dueDate: offsetDate(5),
+          notes: 'Raft consensus optimization benchmarks & final LaTeX draft.',
+          expanded: false,
+          subInitiatives: [
+            { id: 'sub-301', code: 'SCH-302.1', title: 'Run 5-node packet loss simulation graphs', status: 'Done', priority: 'High', dueDate: offsetDate(-1), notes: '' },
+            { id: 'sub-302', code: 'SCH-302.2', title: 'Proofread Related Work & Conclusion sections', status: 'Review', priority: 'High', dueDate: offsetDate(3), notes: '' },
+          ]
+        },
+        {
+          id: 'init-4',
+          code: 'LIF-108',
+          title: 'Sub-1:45 Half Marathon Training Block',
+          space: 'Life',
+          status: 'In Progress',
+          priority: 'Medium',
+          dueDate: offsetDate(30),
+          notes: 'Target race pace: 4:58/km (8:00/mi).',
+          expanded: false,
+          subInitiatives: [
+            { id: 'sub-401', code: 'LIF-108.1', title: '16km Sunday Progression Long Run', status: 'Backlog', priority: 'Medium', dueDate: offsetDate(3), notes: '' },
+            { id: 'sub-402', code: 'LIF-108.2', title: '6x1000m Threshold Intervals @ 4:40/km', status: 'Done', priority: 'Medium', dueDate: offsetDate(-2), notes: '' },
+          ]
+        },
+        {
+          id: 'init-5',
+          code: 'LRN-204',
+          title: 'Build Rust + WebAssembly Image Tool',
+          space: 'Learning',
+          status: 'Backlog',
+          priority: 'Medium',
+          dueDate: offsetDate(21),
+          notes: 'Compile wasm-bindgen pipeline for zero-server client image compression.',
+          expanded: false,
+          subInitiatives: []
+        }
+      ],
+      updatedAt: Date.now()
+    };
+
+    let state = {
+      data: loadLocalData(),
+      activeSpace: 'all',
+      viewMode: 'list',
+      searchQuery: '',
+      priorityFilter: 'all',
+      collapsedGroups: {},
+      selectedItem: null, // { parentId, subId }
+      createParentId: null, // null = top-level, string = adding sub-initiative to parent
+    };
+
+    let supabaseClient = null;
+    let realtimeChannel = null;
+    let syncTimer = null;
+    let syncStatus = 'local'; // 'local' | 'syncing' | 'synced' | 'error'
+
+    function offsetDate(days) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      return d.toISOString().split('T')[0];
     }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    function loadLocalData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.initiatives) && Array.isArray(parsed.spaces)) {
+            parsed.initiatives.forEach(i => { if (!Array.isArray(i.subInitiatives)) i.subInitiatives = []; });
+            return parsed;
+          }
+        }
+      } catch (e) { console.error(e); }
+      return JSON.parse(JSON.stringify(DEFAULT_DATA));
+    }
+
+    function saveData(shouldPush = true) {
+      state.data.updatedAt = Date.now();
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+      } catch (e) { console.error(e); }
+      renderAll();
+      if (shouldPush && supabaseClient) {
+        clearTimeout(syncTimer);
+        syncTimer = setTimeout(() => pushToSupabase(), 600);
+      }
+    }
+
+    // ---------- HELPERS ----------
+    function escapeHtml(str = '') {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function getSpaceObj(spaceId) {
+      return state.data.spaces.find(s => s.id === spaceId || s.name === spaceId) || { id: spaceId, name: spaceId, color: 'indigo', prefix: 'ORB' };
+    }
+
+    function generateCode(spaceId, parentCode = null, subCount = 0) {
+      if (parentCode) return `${parentCode}.${subCount + 1}`;
+      const sp = getSpaceObj(spaceId);
+      const prefix = (sp.prefix || sp.name.slice(0, 3)).toUpperCase();
+      const num = Math.floor(100 + Math.random() * 899);
+      return `${prefix}-${num}`;
+    }
+
+    function cycleStatus(current) {
+      const order = ['Backlog', 'In Progress', 'Review', 'Done'];
+      const idx = order.indexOf(current);
+      return order[(idx + 1) % order.length];
+    }
+
+    function formatDueBadge(dueDate, isDone) {
+      if (!dueDate) return '';
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const due = new Date(dueDate + 'T00:00:00');
+      const diffDays = Math.round((due - today) / 86400000);
+      const label = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+      let cls = 'text-slate-400';
+      if (!isDone) {
+        if (diffDays < 0) cls = 'text-rose-400 font-medium';
+        else if (diffDays <= 3) cls = 'text-amber-400 font-medium';
+      }
+      return `<span class="inline-flex items-center gap-1 text-[11px] ${cls} shrink-0">
+        <svg class="w-3 h-3 opacity-75" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <path d="M16 2v4M8 2v4M3 10h18" />
+        </svg>
+        ${label}
+      </span>`;
+    }
+
+    function renderPriorityIcon(priority) {
+      const levels = { Urgent: 4, High: 3, Medium: 2, Low: 1 };
+      const lvl = levels[priority] || 2;
+      if (priority === 'Urgent') {
+        return `<span title="Urgent Priority" class="w-4 h-4 rounded bg-rose-500/20 text-rose-400 flex items-center justify-center text-[10px] font-bold shrink-0">!</span>`;
+      }
+      const colors = { High: 'bg-amber-400', Medium: 'bg-indigo-400', Low: 'bg-slate-400' };
+      const activeCol = colors[priority] || 'bg-indigo-400';
+      return `<span title="${priority} Priority" class="inline-flex items-end gap-[2px] h-3.5 w-4 justify-center shrink-0">
+        <span class="w-[2.5px] h-1.5 rounded-xs ${lvl >= 1 ? activeCol : 'bg-slate-700'}"></span>
+        <span class="w-[2.5px] h-2.5 rounded-xs ${lvl >= 2 ? activeCol : 'bg-slate-700'}"></span>
+        <span class="w-[2.5px] h-3.5 rounded-xs ${lvl >= 3 ? activeCol : 'bg-slate-700'}"></span>
+      </span>`;
+    }
+
+    function renderStatusIcon(status, size = 'w-4 h-4') {
+      if (status === 'Done') {
+        return `<svg class="${size} text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="12" cy="12" r="9" class="fill-emerald-500/15" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8.5 12.5l2.5 2.5 4.5-5" />
+        </svg>`;
+      }
+      if (status === 'In Progress') {
+        return `<svg class="${size} text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.2" />
+          <path d="M12 3a9 9 0 0 1 0 18V3z" fill="currentColor" />
+        </svg>`;
+      }
+      if (status === 'Review') {
+        return `<svg class="${size} text-violet-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="12" cy="12" r="9" />
+          <circle cx="12" cy="12" r="3.5" fill="currentColor" />
+        </svg>`;
+      }
+      return `<svg class="${size} text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="9" stroke-dasharray="3 3" />
+      </svg>`;
+    }
+
+    function renderProgressRing(done, total) {
+      if (!total) return '';
+      const pct = Math.round((done / total) * 100);
+      const r = 6;
+      const c = 2 * Math.PI * r;
+      const offset = c - (pct / 100) * c;
+      const stroke = done === total ? '#34D399' : '#6366F1';
+      return `<span class="inline-flex items-center gap-1.5 text-[11px] font-mono text-slate-400 shrink-0" title="${done} of ${total} sub-initiatives completed">
+        <svg class="w-4 h-4 -rotate-90" viewBox="0 0 16 16">
+          <circle cx="8" cy="8" r="${r}" fill="none" stroke="#252A3C" stroke-width="2" />
+          <circle cx="8" cy="8" r="${r}" fill="none" stroke="${stroke}" stroke-width="2" stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round" />
+        </svg>
+        <span>${done}/${total}</span>
+      </span>`;
+    }
+
+    function sortSubInitiatives(subs) {
+      const statusWeight = { 'In Progress': 1, 'Review': 2, 'Backlog': 3, 'Done': 4 };
+      return [...subs].sort((a, b) => {
+        const sw = (statusWeight[a.status] || 9) - (statusWeight[b.status] || 9);
+        if (sw !== 0) return sw;
+        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+        return 0;
+      });
+    }
+
+    function getFilteredInitiatives() {
+      const q = state.searchQuery.trim().toLowerCase();
+      return state.data.initiatives.filter(init => {
+        if (state.activeSpace !== 'all' && init.space !== state.activeSpace) return false;
+        const matchingSubs = (init.subInitiatives || []).filter(sub => {
+          const matchesPriority = state.priorityFilter === 'all' || sub.priority === state.priorityFilter;
+          const matchesQuery = !q || sub.title.toLowerCase().includes(q) || (sub.notes || '').toLowerCase().includes(q);
+          return matchesPriority && matchesQuery;
+        });
+
+        const parentMatchesPriority = state.priorityFilter === 'all' || init.priority === state.priorityFilter;
+        const parentMatchesQuery = !q || init.title.toLowerCase().includes(q) || init.code.toLowerCase().includes(q) || (init.notes || '').toLowerCase().includes(q);
+
+        if (q || state.priorityFilter !== 'all') {
+          return (parentMatchesPriority && parentMatchesQuery) || matchingSubs.length > 0;
+        }
+        return true;
+      });
+    }
+
+    // ---------- RENDERING ----------
+    function renderAll() {
+      renderSidebarAndPills();
+      renderWorkspace();
+      if (state.selectedItem) renderDetailDrawer();
+    }
+
+    function renderSidebarAndPills() {
+      const total = state.data.initiatives.length;
+      document.getElementById('count-all').textContent = total;
+
+      // Active state for "All Initiatives"
+      const navAll = document.getElementById('nav-all');
+      if (state.activeSpace === 'all') {
+        navAll.className = 'w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition bg-indigo-500/15 text-indigo-300 border border-indigo-500/25';
+      } else {
+        navAll.className = 'w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition text-slate-400 hover:text-white hover:bg-[#161924] border border-transparent';
+      }
+
+      // Desktop sidebar spaces
+      const sidebarList = document.getElementById('sidebar-spaces-list');
+      sidebarList.innerHTML = state.data.spaces.map(sp => {
+        const count = state.data.initiatives.filter(i => i.space === sp.id).length;
+        const c = SPACE_COLORS[sp.color] || SPACE_COLORS.indigo;
+        const active = state.activeSpace === sp.id;
+        return `<button onclick="setActiveSpace('${escapeHtml(sp.id)}')" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition ${active ? 'bg-[#191D2B] text-white border border-[#282E42]' : 'text-slate-400 hover:text-white hover:bg-[#151822] border border-transparent'}">
+          <span class="flex items-center gap-2.5 truncate">
+            <span class="w-2 h-2 rounded-full ${c.dot} shrink-0"></span>
+            <span class="truncate">${escapeHtml(sp.name)}</span>
+          </span>
+          <span class="text-[11px] font-mono text-slate-500">${count}</span>
+        </button>`;
+      }).join('');
+
+      // Mobile spaces sheet
+      const mobList = document.getElementById('mobile-spaces-list');
+      mobList.innerHTML = state.data.spaces.map(sp => {
+        const count = state.data.initiatives.filter(i => i.space === sp.id).length;
+        const c = SPACE_COLORS[sp.color] || SPACE_COLORS.indigo;
+        return `<button onclick="setActiveSpace('${escapeHtml(sp.id)}'); closeMobileSpacesSheet();" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[#0D0F16] border border-[#1E2230] text-xs font-medium text-slate-200">
+          <span class="flex items-center gap-2.5">
+            <span class="w-2.5 h-2.5 rounded-full ${c.dot}"></span>
+            <span>${escapeHtml(sp.name)}</span>
+          </span>
+          <span class="font-mono text-slate-400">${count}</span>
+        </button>`;
+      }).join('');
+
+      // Top bar quick filter pills
+      const pills = document.getElementById('filter-space-pills');
+      const allBtn = `<button onclick="setActiveSpace('all')" class="px-3 py-1 rounded-full text-xs font-medium transition ${state.activeSpace === 'all' ? 'bg-white text-[#0B0C10] font-semibold' : 'bg-[#131620] text-slate-400 hover:text-white border border-[#1E2230]'}">All</button>`;
+      const spaceBtns = state.data.spaces.map(sp => {
+        const c = SPACE_COLORS[sp.color] || SPACE_COLORS.indigo;
+        const active = state.activeSpace === sp.id;
+        return `<button onclick="setActiveSpace('${escapeHtml(sp.id)}')" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition ${active ? 'bg-[#22273A] text-white border border-indigo-500/40' : 'bg-[#131620] text-slate-400 hover:text-white border border-[#1E2230]'}">
+          <span class="w-1.5 h-1.5 rounded-full ${c.dot}"></span>
+          <span>${escapeHtml(sp.name)}</span>
+        </button>`;
+      }).join('');
+      pills.innerHTML = allBtn + spaceBtns;
+
+      // Update header title
+      const titleEl = document.getElementById('workspace-title');
+      if (state.activeSpace === 'all') {
+        titleEl.textContent = 'All Initiatives';
+      } else {
+        const sp = getSpaceObj(state.activeSpace);
+        titleEl.textContent = sp.name;
+      }
+    }
+
+    function renderWorkspace() {
+      const items = getFilteredInitiatives();
+      document.getElementById('workspace-count').textContent = items.length;
+      const container = document.getElementById('workspace-content');
+
+      if (state.viewMode === 'board') {
+        renderBoardView(container, items);
+      } else {
+        renderListView(container, items);
+      }
+    }
+
+    function renderListView(container, items) {
+      if (items.length === 0) {
+        container.innerHTML = `<div class="h-64 flex flex-col items-center justify-center text-center border border-dashed border-[#1E2230] rounded-2xl p-6">
+          <p class="text-sm font-medium text-slate-300">No initiatives match your filter</p>
+          <p class="text-xs text-slate-500 mt-1 mb-4">Create a class, project, or task to start tracking.</p>
+          <button onclick="openCreateModal()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold">+ New Initiative</button>
+        </div>`;
+        return;
+      }
+
+      const html = STATUSES.map(status => {
+        const groupItems = items.filter(i => i.status === status);
+        if (groupItems.length === 0 && status === 'Done' && state.searchQuery === '') return '';
+        const collapsed = !!state.collapsedGroups[status];
+
+        return `<section class="mb-5 rounded-2xl bg-[#101219] border border-[#1C202E] overflow-hidden">
+          <!-- Group Header -->
+          <div class="px-3.5 py-2.5 bg-[#131620] border-b border-[#1C202E] flex items-center justify-between">
+            <button onclick="toggleGroupCollapse('${status}')" class="flex items-center gap-2 text-xs font-semibold text-slate-200 hover:text-white">
+              <span class="text-slate-500 text-[10px] w-3">${collapsed ? '▸' : '▾'}</span>
+              ${renderStatusIcon(status, 'w-3.5 h-3.5')}
+              <span>${status}</span>
+              <span class="text-[11px] font-mono text-slate-500 ml-0.5">${groupItems.length}</span>
+            </button>
+            <button onclick="openCreateModal(null, '${status}')" title="Add to ${status}" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-[#1E2232] transition">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Group Rows -->
+          ${collapsed ? '' : `<div class="divide-y divide-[#191D2A]">
+            ${groupItems.length === 0 ? `<div class="px-4 py-3 text-xs text-slate-600">No initiatives in ${status}</div>` : groupItems.map(item => renderParentRow(item)).join('')}
+          </div>`}
+        </section>`;
+      }).join('');
+
+      container.innerHTML = html;
+    }
+
+    function renderParentRow(item) {
+      const subs = sortSubInitiatives(item.subInitiatives || []);
+      const doneSubs = subs.filter(s => s.status === 'Done').length;
+      const hasSubs = subs.length > 0;
+      const isExpanded = item.expanded !== false && hasSubs;
+      const sp = getSpaceObj(item.space);
+      const spColor = SPACE_COLORS[sp.color] || SPACE_COLORS.indigo;
+      const isDone = item.status === 'Done';
+
+      const subRowsHtml = isExpanded ? `<div class="bg-[#0D0F15] border-t border-[#181C28] pl-7 sm:pl-11 pr-3 py-1.5 space-y-1">
+        ${subs.map(sub => {
+          const subDone = sub.status === 'Done';
+          return `<div onclick="openDetailDrawer('${item.id}', '${sub.id}')" class="group/sub flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl hover:bg-[#151924] cursor-pointer transition border border-transparent hover:border-[#22273A]">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="text-slate-600 text-xs font-mono select-none">└</span>
+              <button onclick="event.stopPropagation(); toggleSubStatus('${item.id}', '${sub.id}')" title="Cycle Status" class="hover:scale-110 transition">
+                ${renderStatusIcon(sub.status, 'w-3.5 h-3.5')}
+              </button>
+              ${renderPriorityIcon(sub.priority)}
+              <span class="text-xs truncate ${subDone ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}">${escapeHtml(sub.title)}</span>
+            </div>
+            <div class="flex items-center gap-2.5 shrink-0">
+              ${formatDueBadge(sub.dueDate, subDone)}
+              <button onclick="event.stopPropagation(); deleteSubInitiative('${item.id}', '${sub.id}')" title="Delete sub-initiative" class="opacity-0 group-hover/sub:opacity-100 p-1 rounded text-slate-500 hover:text-rose-400 transition">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>` : '';
+
+      return `<div class="group/row">
+        <div onclick="openDetailDrawer('${item.id}')" class="px-3.5 py-2.5 hover:bg-[#151823] cursor-pointer transition flex items-center justify-between gap-2">
+          <!-- Left side -->
+          <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <button onclick="event.stopPropagation(); toggleExpandInitiative('${item.id}')" class="w-5 h-5 flex items-center justify-center rounded hover:bg-[#22273A] text-slate-400 text-[11px] shrink-0 ${hasSubs ? 'visible' : 'opacity-30'}">
+              ${hasSubs ? (isExpanded ? '▾' : '▸') : '•'}
+            </button>
+
+            ${renderPriorityIcon(item.priority)}
+
+            <button onclick="event.stopPropagation(); toggleInitiativeStatus('${item.id}')" title="Cycle Status" class="hover:scale-110 transition">
+              ${renderStatusIcon(item.status)}
+            </button>
+
+            <span class="hidden sm:inline text-[11px] font-mono text-slate-500 shrink-0">${escapeHtml(item.code)}</span>
+
+            <span class="text-xs sm:text-[13px] truncate ${isDone ? 'line-through text-slate-500' : 'text-slate-100 font-medium'}">
+              ${escapeHtml(item.title)}
+            </span>
+          </div>
+
+          <!-- Right metadata & + Sub button -->
+          <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <button onclick="event.stopPropagation(); openCreateModal('${item.id}')" title="Add Sub-initiative" class="md:opacity-0 md:group-hover/row:opacity-100 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-[11px] font-medium text-indigo-300 transition">
+              <span>+ Sub</span>
+            </button>
+
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[11px] font-medium ${spColor.pill}">
+              <span class="w-1.5 h-1.5 rounded-full ${spColor.dot}"></span>
+              <span class="hidden sm:inline">${escapeHtml(sp.name)}</span>
+            </span>
+
+            ${renderProgressRing(doneSubs, subs.length)}
+
+            <div class="hidden xs:block sm:block">
+              ${formatDueBadge(item.dueDate, isDone)}
+            </div>
+          </div>
+        </div>
+        ${subRowsHtml}
+      </div>`;
+    }
+
+    function renderBoardView(container, items) {
+      container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+        ${BOARD_STATUSES.map(status => {
+          const colItems = items.filter(i => i.status === status);
+          return `<div class="rounded-2xl bg-[#101219] border border-[#1C202E] p-3 flex flex-col gap-2.5">
+            <div class="flex items-center justify-between px-1">
+              <div class="flex items-center gap-2 text-xs font-semibold text-slate-200">
+                ${renderStatusIcon(status, 'w-3.5 h-3.5')}
+                <span>${status}</span>
+                <span class="font-mono text-[11px] text-slate-500">${colItems.length}</span>
+              </div>
+              <button onclick="openCreateModal(null, '${status}')" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-[#1E2232]">+</button>
+            </div>
+
+            <div class="space-y-2.5">
+              ${colItems.map(item => {
+                const sp = getSpaceObj(item.space);
+                const spColor = SPACE_COLORS[sp.color] || SPACE_COLORS.indigo;
+                const subs = sortSubInitiatives(item.subInitiatives || []);
+                const doneSubs = subs.filter(s => s.status === 'Done').length;
+                return `<div onclick="openDetailDrawer('${item.id}')" class="p-3 rounded-xl bg-[#151823] hover:bg-[#191D2B] border border-[#22273A] cursor-pointer transition space-y-2.5">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-[10px] font-mono text-slate-500">${escapeHtml(item.code)}</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-medium ${spColor.pill}">
+                      <span class="w-1.5 h-1.5 rounded-full ${spColor.dot}"></span>
+                      ${escapeHtml(sp.name)}
+                    </span>
+                  </div>
+                  <div class="text-xs font-semibold text-slate-100 leading-snug">${escapeHtml(item.title)}</div>
+
+                  ${subs.length > 0 ? `<div class="pt-1.5 border-t border-[#202536] space-y-1">
+                    ${subs.slice(0, 3).map(s => `<div class="flex items-center gap-1.5 text-[11px] ${s.status === 'Done' ? 'line-through text-slate-500' : 'text-slate-300'}">
+                      ${renderStatusIcon(s.status, 'w-3 h-3')}
+                      <span class="truncate">${escapeHtml(s.title)}</span>
+                    </div>`).join('')}
+                    ${subs.length > 3 ? `<div class="text-[10px] text-slate-500 pl-4">+${subs.length - 3} more</div>` : ''}
+                  </div>` : ''}
+
+                  <div class="pt-1 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      ${renderPriorityIcon(item.priority)}
+                      ${renderProgressRing(doneSubs, subs.length)}
+                      ${formatDueBadge(item.dueDate, item.status === 'Done')}
+                    </div>
+                    <button onclick="event.stopPropagation(); openCreateModal('${item.id}')" class="px-2 py-0.5 rounded bg-indigo-500/15 hover:bg-indigo-500/25 text-[10px] font-medium text-indigo-300">+ Sub</button>
+                  </div>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+
+    // ---------- DETAIL SLIDE-OVER DRAWER ----------
+    function openDetailDrawer(parentId, subId = null) {
+      state.selectedItem = { parentId, subId };
+      document.getElementById('detail-drawer-backdrop').classList.remove('hidden');
+      document.getElementById('detail-drawer').classList.remove('hidden');
+      document.getElementById('detail-drawer').classList.add('flex');
+      renderDetailDrawer();
+    }
+
+    function closeDetailDrawer() {
+      state.selectedItem = null;
+      document.getElementById('detail-drawer-backdrop').classList.add('hidden');
+      document.getElementById('detail-drawer').classList.add('hidden');
+      document.getElementById('detail-drawer').classList.remove('flex');
+    }
+
+    function renderDetailDrawer() {
+      if (!state.selectedItem) return;
+      const { parentId, subId } = state.selectedItem;
+      const parent = state.data.initiatives.find(i => i.id === parentId);
+      if (!parent) return closeDetailDrawer();
+
+      const target = subId ? (parent.subInitiatives || []).find(s => s.id === subId) : parent;
+      if (!target) return closeDetailDrawer();
+
+      const container = document.getElementById('detail-drawer-content');
+      const subs = sortSubInitiatives(parent.subInitiatives || []);
+      const doneSubs = subs.filter(s => s.status === 'Done').length;
+
+      container.innerHTML = `
+        <!-- Drawer Header -->
+        <div class="px-5 py-4 border-b border-[#1E2230] flex items-center justify-between gap-2 shrink-0">
+          <div class="flex items-center gap-2 min-w-0">
+            ${subId ? `<button onclick="openDetailDrawer('${parent.id}')" class="text-xs text-indigo-400 hover:underline truncate">← ${escapeHtml(parent.title)}</button>` : `<span class="text-xs font-mono text-slate-400">${escapeHtml(parent.code)}</span>`}
+          </div>
+          <div class="flex items-center gap-1.5">
+            ${subId ? `<button onclick="promoteSubToTopLevel('${parent.id}', '${subId}')" title="Promote to top-level initiative" class="px-2.5 py-1 rounded-lg bg-[#191D2B] hover:bg-[#23283B] text-[11px] text-slate-300">Promote</button>` : ''}
+            <button onclick="deleteCurrentItem()" title="Delete" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+            <button onclick="closeDetailDrawer()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1E2230]">✕</button>
+          </div>
+        </div>
+
+        <!-- Drawer Body -->
+        <div class="flex-1 overflow-y-auto p-5 space-y-5">
+          <!-- Title -->
+          <div>
+            <input type="text" value="${escapeHtml(target.title)}" onchange="updateSelectedField('title', this.value)" class="w-full text-base font-semibold bg-transparent border-b border-transparent focus:border-indigo-500 focus:outline-none text-white pb-1" />
+          </div>
+
+          <!-- Properties Grid -->
+          <div class="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-[#0D0F16] border border-[#1E2230]">
+            ${!subId ? `<div>
+              <label class="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Space</label>
+              <select onchange="updateSelectedField('space', this.value)" class="w-full px-2.5 py-1.5 text-xs bg-[#151823] border border-[#23283A] rounded-lg text-slate-200">
+                ${state.data.spaces.map(sp => `<option value="${escapeHtml(sp.id)}" ${parent.space === sp.id ? 'selected' : ''}>${escapeHtml(sp.name)}</option>`).join('')}
+              </select>
+            </div>` : ''}
+
+            <div>
+              <label class="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Status</label>
+              <select onchange="updateSelectedField('status', this.value)" class="w-full px-2.5 py-1.5 text-xs bg-[#151823] border border-[#23283A] rounded-lg text-slate-200">
+                ${BOARD_STATUSES.map(st => `<option value="${st}" ${target.status === st ? 'selected' : ''}>${st}</option>`).join('')}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Priority</label>
+              <select onchange="updateSelectedField('priority', this.value)" class="w-full px-2.5 py-1.5 text-xs bg-[#151823] border border-[#23283A] rounded-lg text-slate-200">
+                ${PRIORITIES.map(pr => `<option value="${pr}" ${target.priority === pr ? 'selected' : ''}>${pr}</option>`).join('')}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Due Date</label>
+              <input type="date" value="${target.dueDate || ''}" onchange="updateSelectedField('dueDate', this.value)" class="w-full px-2.5 py-1.5 text-xs bg-[#151823] border border-[#23283A] rounded-lg text-slate-200" />
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div>
+            <label class="block text-[11px] font-medium text-slate-400 mb-1.5">Notes</label>
+            <textarea rows="3" placeholder="Add syllabus links, requirements, or context..." onchange="updateSelectedField('notes', this.value)" class="w-full p-3 text-xs bg-[#0D0F16] border border-[#1E2230] focus:border-indigo-500 focus:outline-none rounded-xl text-slate-200 placeholder-slate-600 leading-relaxed">${escapeHtml(target.notes || '')}</textarea>
+          </div>
+
+          <!-- Sub-Initiatives Section (shown on Parent Initiatives) -->
+          ${!subId ? `<div class="pt-2 border-t border-[#1E2230]">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <h3 class="text-xs font-semibold text-white">Sub-Initiatives</h3>
+                <span class="text-[11px] font-mono text-slate-400">${doneSubs}/${subs.length}</span>
+              </div>
+              ${renderProgressRing(doneSubs, subs.length)}
+            </div>
+
+            <!-- Inline Quick-Add Sub-Initiative Bar -->
+            <form onsubmit="quickAddSubInitiative(event, '${parent.id}')" class="flex flex-col sm:flex-row gap-2 mb-3 p-2.5 rounded-xl bg-[#0D0F16] border border-[#22273A]">
+              <input id="quick-sub-title" type="text" required placeholder="Add assignment, task, or milestone..." class="flex-1 px-2.5 py-1.5 text-xs bg-[#151823] border border-[#23283A] focus:border-indigo-500 focus:outline-none rounded-lg text-white placeholder-slate-500" />
+              <div class="flex items-center gap-1.5">
+                <input id="quick-sub-due" type="date" class="px-2 py-1.5 text-[11px] bg-[#151823] border border-[#23283A] rounded-lg text-slate-300" />
+                <select id="quick-sub-priority" class="px-2 py-1.5 text-[11px] bg-[#151823] border border-[#23283A] rounded-lg text-slate-300">
+                  <option value="Medium">Med</option>
+                  <option value="High">High</option>
+                  <option value="Urgent">Urgent</option>
+                  <option value="Low">Low</option>
+                </select>
+                <button type="submit" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shrink-0">Add</button>
+              </div>
+            </form>
+
+            <!-- Sub-initiatives List -->
+            <div class="space-y-1.5">
+              ${subs.length === 0 ? `<p class="text-xs text-slate-500 py-3 text-center">No sub-initiatives yet. Add homework, tasks, or milestones above.</p>` : subs.map(s => `
+                <div onclick="openDetailDrawer('${parent.id}', '${s.id}')" class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#151823] hover:bg-[#1B1F2E] border border-[#22273A] cursor-pointer transition">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <button onclick="event.stopPropagation(); toggleSubStatus('${parent.id}', '${s.id}')" class="hover:scale-110 transition">
+                      ${renderStatusIcon(s.status, 'w-4 h-4')}
+                    </button>
+                    ${renderPriorityIcon(s.priority)}
+                    <span class="text-xs truncate ${s.status === 'Done' ? 'line-through text-slate-500' : 'text-slate-100 font-medium'}">${escapeHtml(s.title)}</span>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    ${formatDueBadge(s.dueDate, s.status === 'Done')}
+                    <button onclick="event.stopPropagation(); deleteSubInitiative('${parent.id}', '${s.id}')" class="p-1 text-slate-500 hover:text-rose-400">✕</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>` : ''}
+        </div>
+      `;
+    }
+
+    // ---------- MUTATIONS ----------
+    function setActiveSpace(spaceId) {
+      state.activeSpace = spaceId;
+      renderAll();
+    }
+
+    function setViewMode(mode) {
+      state.viewMode = mode;
+      const listBtn = document.getElementById('btn-view-list');
+      const boardBtn = document.getElementById('btn-view-board');
+      if (mode === 'list') {
+        listBtn.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#1E2232] text-white transition';
+        boardBtn.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition';
+      } else {
+        boardBtn.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#1E2232] text-white transition';
+        listBtn.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition';
+      }
+      renderWorkspace();
+    }
+
+    function handleSearch(val) {
+      state.searchQuery = val;
+      document.getElementById('search-input').value = val;
+      document.getElementById('mobile-search-input').value = val;
+      renderWorkspace();
+    }
+
+    function handlePriorityFilter(val) {
+      state.priorityFilter = val;
+      renderWorkspace();
+    }
+
+    function toggleGroupCollapse(status) {
+      state.collapsedGroups[status] = !state.collapsedGroups[status];
+      renderWorkspace();
+    }
+
+    function toggleExpandInitiative(id) {
+      const init = state.data.initiatives.find(i => i.id === id);
+      if (init) {
+        init.expanded = init.expanded === false ? true : false;
+        saveData(false);
+      }
+    }
+
+    function toggleInitiativeStatus(id) {
+      const init = state.data.initiatives.find(i => i.id === id);
+      if (init) {
+        init.status = cycleStatus(init.status);
+        saveData();
+      }
+    }
+
+    function toggleSubStatus(parentId, subId) {
+      const parent = state.data.initiatives.find(i => i.id === parentId);
+      if (!parent) return;
+      const sub = (parent.subInitiatives || []).find(s => s.id === subId);
+      if (sub) {
+        sub.status = cycleStatus(sub.status);
+        saveData();
+      }
+    }
+
+    function deleteSubInitiative(parentId, subId) {
+      const parent = state.data.initiatives.find(i => i.id === parentId);
+      if (!parent) return;
+      parent.subInitiatives = (parent.subInitiatives || []).filter(s => s.id !== subId);
+      if (state.selectedItem && state.selectedItem.subId === subId) {
+        state.selectedItem = { parentId, subId: null };
+      }
+      saveData();
+      showToast('Sub-initiative removed');
+    }
+
+    function promoteSubToTopLevel(parentId, subId) {
+      const parent = state.data.initiatives.find(i => i.id === parentId);
+      if (!parent) return;
+      const idx = (parent.subInitiatives || []).findIndex(s => s.id === subId);
+      if (idx === -1) return;
+      const [sub] = parent.subInitiatives.splice(idx, 1);
+      const newInit = {
+        id: 'init-' + Date.now(),
+        code: generateCode(parent.space),
+        title: sub.title,
+        space: parent.space,
+        status: sub.status,
+        priority: sub.priority,
+        dueDate: sub.dueDate,
+        notes: sub.notes || '',
+        expanded: false,
+        subInitiatives: []
+      };
+      state.data.initiatives.unshift(newInit);
+      state.selectedItem = { parentId: newInit.id, subId: null };
+      saveData();
+      showToast('Promoted to top-level initiative');
+    }
+
+    function updateSelectedField(field, value) {
+      if (!state.selectedItem) return;
+      const { parentId, subId } = state.selectedItem;
+      const parent = state.data.initiatives.find(i => i.id === parentId);
+      if (!parent) return;
+      const target = subId ? (parent.subInitiatives || []).find(s => s.id === subId) : parent;
+      if (!target) return;
+      target[field] = value;
+      saveData();
+    }
+
+    function deleteCurrentItem() {
+      if (!state.selectedItem) return;
+      const { parentId, subId } = state.selectedItem;
+      if (subId) {
+        deleteSubInitiative(parentId, subId);
+      } else {
+        state.data.initiatives = state.data.initiatives.filter(i => i.id !== parentId);
+        closeDetailDrawer();
+        saveData();
+        showToast('Initiative deleted');
+      }
+    }
+
+    function quickAddSubInitiative(e, parentId) {
+      e.preventDefault();
+      const parent = state.data.initiatives.find(i => i.id === parentId);
+      if (!parent) return;
+      const titleInput = document.getElementById('quick-sub-title');
+      const dueInput = document.getElementById('quick-sub-due');
+      const prioInput = document.getElementById('quick-sub-priority');
+      const title = titleInput.value.trim();
+      if (!title) return;
+
+      if (!Array.isArray(parent.subInitiatives)) parent.subInitiatives = [];
+      parent.subInitiatives.push({
+        id: 'sub-' + Date.now(),
+        code: generateCode(parent.space, parent.code, parent.subInitiatives.length),
+        title,
+        status: 'Backlog',
+        priority: prioInput.value || 'Medium',
+        dueDate: dueInput.value || '',
+        notes: ''
+      });
+      parent.expanded = true;
+      titleInput.value = '';
+      saveData();
+      showToast('Sub-initiative added');
+    }
+
+    // ---------- CREATE MODAL ----------
+    function openCreateModal(parentId = null, defaultStatus = 'In Progress') {
+      state.createParentId = parentId;
+      const modal = document.getElementById('create-modal');
+      const titleEl = document.getElementById('create-modal-title');
+      const subEl = document.getElementById('create-modal-subtitle');
+      const spaceWrapper = document.getElementById('create-space-wrapper');
+      const spaceSelect = document.getElementById('create-space');
+
+      spaceSelect.innerHTML = state.data.spaces.map(sp =>
+        `<option value="${escapeHtml(sp.id)}" ${state.activeSpace === sp.id ? 'selected' : ''}>${escapeHtml(sp.name)}</option>`
+      ).join('');
+
+      document.getElementById('create-title').value = '';
+      document.getElementById('create-status').value = defaultStatus;
+      document.getElementById('create-priority').value = 'Medium';
+      document.getElementById('create-due').value = '';
+      document.getElementById('create-notes').value = '';
+
+      if (parentId) {
+        const parent = state.data.initiatives.find(i => i.id === parentId);
+        titleEl.textContent = 'New Sub-Initiative';
+        subEl.textContent = parent ? `Under ${parent.code} · ${parent.title}` : '';
+        subEl.classList.remove('hidden');
+        spaceWrapper.classList.add('hidden');
+      } else {
+        titleEl.textContent = 'New Initiative';
+        subEl.classList.add('hidden');
+        spaceWrapper.classList.remove('hidden');
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      setTimeout(() => document.getElementById('create-title').focus(), 50);
+    }
+
+    function closeCreateModal() {
+      const modal = document.getElementById('create-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function submitCreateForm(e) {
+      e.preventDefault();
+      const title = document.getElementById('create-title').value.trim();
+      if (!title) return;
+      const status = document.getElementById('create-status').value;
+      const priority = document.getElementById('create-priority').value;
+      const dueDate = document.getElementById('create-due').value;
+      const notes = document.getElementById('create-notes').value.trim();
+
+      if (state.createParentId) {
+        const parent = state.data.initiatives.find(i => i.id === state.createParentId);
+        if (parent) {
+          if (!Array.isArray(parent.subInitiatives)) parent.subInitiatives = [];
+          parent.subInitiatives.push({
+            id: 'sub-' + Date.now(),
+            code: generateCode(parent.space, parent.code, parent.subInitiatives.length),
+            title,
+            status,
+            priority,
+            dueDate,
+            notes
+          });
+          parent.expanded = true;
+        }
+      } else {
+        const space = document.getElementById('create-space').value;
+        state.data.initiatives.unshift({
+          id: 'init-' + Date.now(),
+          code: generateCode(space),
+          title,
+          space,
+          status,
+          priority,
+          dueDate,
+          notes,
+          expanded: true,
+          subInitiatives: []
+        });
+      }
+
+      closeCreateModal();
+      saveData();
+      showToast(state.createParentId ? 'Sub-initiative added' : 'Initiative created');
+    }
+
+    // ---------- NEW SPACE MODAL ----------
+    function openNewSpaceModal() {
+      document.getElementById('new-space-name').value = '';
+      const m = document.getElementById('space-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+      setTimeout(() => document.getElementById('new-space-name').focus(), 50);
+    }
+
+    function closeNewSpaceModal() {
+      const m = document.getElementById('space-modal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function submitNewSpace(e) {
+      e.preventDefault();
+      const name = document.getElementById('new-space-name').value.trim();
+      const color = document.getElementById('new-space-color').value;
+      if (!name) return;
+      if (!state.data.spaces.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+        state.data.spaces.push({
+          id: name,
+          name,
+          color,
+          prefix: name.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'SPC'
+        });
+        saveData();
+        showToast(`Space "${name}" added`);
+      }
+      closeNewSpaceModal();
+    }
+
+    function openMobileSpacesSheet() {
+      const m = document.getElementById('mobile-spaces-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeMobileSpacesSheet() {
+      const m = document.getElementById('mobile-spaces-modal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    // ---------- SUPABASE CLOUD SYNC ----------
+    function getSyncConfig() {
+      try {
+        return JSON.parse(localStorage.getItem(SYNC_CONFIG_KEY) || 'null');
+      } catch { return null; }
+    }
+
+    function setSyncUI(status, message = '') {
+      syncStatus = status;
+      const dot = document.getElementById('sync-dot');
+      const label = document.getElementById('sync-label');
+      const mobDot = document.getElementById('mob-sync-dot');
+      const mobLabel = document.getElementById('mob-sync-label');
+      const modalStatus = document.getElementById('sync-modal-status');
+      const errBanner = document.getElementById('sync-error-banner');
+
+      if (status === 'synced') {
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-400 shrink-0';
+        label.textContent = 'Synced';
+        mobDot.className = 'w-2 h-2 rounded-full bg-emerald-400 absolute -top-0.5 -right-1 border border-[#0E1017]';
+        mobLabel.textContent = 'Synced';
+        modalStatus.textContent = 'Connected';
+        modalStatus.className = 'text-xs text-emerald-400 font-medium';
+        errBanner.classList.add('hidden');
+      } else if (status === 'syncing') {
+        dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0';
+        label.textContent = 'Syncing...';
+        modalStatus.textContent = 'Syncing...';
+      } else if (status === 'error') {
+        dot.className = 'w-2 h-2 rounded-full bg-rose-500 shrink-0';
+        label.textContent = 'Sync Error';
+        mobDot.className = 'w-2 h-2 rounded-full bg-rose-500 absolute -top-0.5 -right-1 border border-[#0E1017]';
+        modalStatus.textContent = 'Error';
+        modalStatus.className = 'text-xs text-rose-400 font-medium';
+        if (message) {
+          errBanner.textContent = message;
+          errBanner.classList.remove('hidden');
+        }
+      } else {
+        dot.className = 'w-2 h-2 rounded-full bg-slate-500 shrink-0';
+        label.textContent = 'Local Only';
+        mobDot.className = 'w-2 h-2 rounded-full bg-slate-500 absolute -top-0.5 -right-1 border border-[#0E1017]';
+        mobLabel.textContent = 'Sync';
+        modalStatus.textContent = 'Local Only';
+        errBanner.classList.add('hidden');
+      }
+    }
+
+    async function hashPassphrase(passphrase) {
+      const enc = new TextEncoder().encode(passphrase.trim());
+      const buf = await crypto.subtle.digest('SHA-256', enc);
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function openSyncModal() {
+      const cfg = getSyncConfig() || {};
+      document.getElementById('sync-url-input').value = cfg.url || '';
+      document.getElementById('sync-key-input').value = cfg.key || '';
+      document.getElementById('sync-pass-input').value = cfg.passphrase || '';
+      const m = document.getElementById('sync-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeSyncModal() {
+      const m = document.getElementById('sync-modal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function copySetupSQL() {
+      const text = document.getElementById('setup-sql-code').textContent;
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      const btn = document.getElementById('copy-sql-btn');
+      btn.innerHTML = '<span class="text-emerald-400">Copied ✓</span>';
+      setTimeout(() => { btn.innerHTML = '<span>Copy SQL</span>'; }, 2000);
+    }
+
+    async function initSupabaseConnection(cfg, initialPull = true) {
+      if (!cfg || !cfg.url || !cfg.key || !cfg.passphrase) {
+        supabaseClient = null;
+        setSyncUI('local');
+        return;
+      }
+
+      try {
+        setSyncUI('syncing');
+        const workspaceId = await hashPassphrase(cfg.passphrase);
+        supabaseClient = window.supabase.createClient(cfg.url.trim(), cfg.key.trim());
+        supabaseClient._orbitWorkspaceId = workspaceId;
+
+        if (realtimeChannel) {
+          supabaseClient.removeChannel(realtimeChannel);
+        }
+
+        realtimeChannel = supabaseClient
+          .channel('orbit-sync-' + workspaceId.slice(0, 12))
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'orbit_workspaces',
+            filter: `id=eq.${workspaceId}`
+          }, payload => {
+            if (payload.new && payload.new.data) {
+              const remote = payload.new.data;
+              if (!remote.updatedAt || remote.updatedAt > (state.data.updatedAt || 0)) {
+                state.data = remote;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+                renderAll();
+              }
+            }
+          })
+          .subscribe();
+
+        if (initialPull) {
+          await pullFromSupabase(true);
+        } else {
+          setSyncUI('synced');
+        }
+      } catch (err) {
+        console.error(err);
+        setSyncUI('error', err.message || 'Connection failed');
+      }
+    }
+
+    async function pullFromSupabase(pushIfMissing = false) {
+      if (!supabaseClient) return;
+      setSyncUI('syncing');
+      const id = supabaseClient._orbitWorkspaceId;
+      const { data, error } = await supabaseClient
+        .from('orbit_workspaces')
+        .select('data')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error) {
+        setSyncUI('error', error.message);
+        return false;
+      }
+
+      if (data && data.data) {
+        state.data = data.data;
+        if (Array.isArray(state.data.initiatives)) {
+          state.data.initiatives.forEach(i => { if (!Array.isArray(i.subInitiatives)) i.subInitiatives = []; });
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+        renderAll();
+        setSyncUI('synced');
+        return true;
+      } else if (pushIfMissing) {
+        return await pushToSupabase();
+      }
+      setSyncUI('synced');
+      return true;
+    }
+
+    async function pushToSupabase() {
+      if (!supabaseClient) return;
+      setSyncUI('syncing');
+      const id = supabaseClient._orbitWorkspaceId;
+      const { error } = await supabaseClient
+        .from('orbit_workspaces')
+        .upsert({
+          id,
+          data: state.data,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+
+      if (error) {
+        setSyncUI('error', error.message);
+        return false;
+      }
+      setSyncUI('synced');
+      return true;
+    }
+
+    async function saveAndConnectSync() {
+      const url = document.getElementById('sync-url-input').value.trim();
+      const key = document.getElementById('sync-key-input').value.trim();
+      const passphrase = document.getElementById('sync-pass-input').value.trim();
+
+      if (!url && !key && !passphrase) {
+        localStorage.removeItem(SYNC_CONFIG_KEY);
+        supabaseClient = null;
+        setSyncUI('local');
+        closeSyncModal();
+        showToast('Switched to Local Only mode');
+        return;
+      }
+
+      if (!url || !key || !passphrase) {
+        setSyncUI('error', 'Please fill in all 3 fields (URL, Anon Key, and Passphrase).');
+        return;
+      }
+
+      const cfg = { url, key, passphrase };
+      localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
+      await initSupabaseConnection(cfg, true);
+      if (syncStatus === 'synced') {
+        closeSyncModal();
+        showToast('Cloud Sync connected');
+      }
+    }
+
+    async function forcePull() {
+      const url = document.getElementById('sync-url-input').value.trim();
+      const key = document.getElementById('sync-key-input').value.trim();
+      const passphrase = document.getElementById('sync-pass-input').value.trim();
+      if (!url || !key || !passphrase) return setSyncUI('error', 'Enter credentials first.');
+      const cfg = { url, key, passphrase };
+      localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
+      await initSupabaseConnection(cfg, false);
+      const ok = await pullFromSupabase(false);
+      if (ok) showToast('Pulled latest from cloud');
+    }
+
+    async function forcePush() {
+      const url = document.getElementById('sync-url-input').value.trim();
+      const key = document.getElementById('sync-key-input').value.trim();
+      const passphrase = document.getElementById('sync-pass-input').value.trim();
+      if (!url || !key || !passphrase) return setSyncUI('error', 'Enter credentials first.');
+      const cfg = { url, key, passphrase };
+      localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
+      await initSupabaseConnection(cfg, false);
+      const ok = await pushToSupabase();
+      if (ok) showToast('Pushed workspace to cloud');
+    }
+
+    async function manualSyncNow() {
+      if (!supabaseClient) return openSyncModal();
+      const icon = document.getElementById('sync-refresh-icon');
+      icon.classList.add('animate-spin');
+      await pullFromSupabase(true);
+      setTimeout(() => icon.classList.remove('animate-spin'), 400);
+      if (syncStatus === 'synced') showToast('Workspace synced');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('opacity-0');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.add('opacity-0'), 2200);
+    }
+
+    // ---------- KEYBOARD SHORTCUTS & BOOT ----------
+    document.addEventListener('keydown', e => {
+      const tag = document.activeElement.tagName;
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        document.getElementById('search-input').focus();
+      } else if (!isInput && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        openCreateModal();
+      } else if (e.key === 'Escape') {
+        closeCreateModal();
+        closeNewSpaceModal();
+        closeSyncModal();
+        closeDetailDrawer();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      renderAll();
+
+      // Support optional ?url=...&key=...&pass=... auto-connect bookmark parameters
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('url') && params.get('key') && params.get('pass')) {
+        const cfg = { url: params.get('url'), key: params.get('key'), passphrase: params.get('pass') };
+        localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(cfg));
+        window.history.replaceState({}, document.title, window.location.pathname);
+        await initSupabaseConnection(cfg, true);
+        return;
+      }
+
+      const savedCfg = getSyncConfig();
+      if (savedCfg) {
+        await initSupabaseConnection(savedCfg, true);
+      }
+    });
   </script>
 </body>
 </html>
