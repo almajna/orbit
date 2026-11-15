@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#0B0C10" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -45,21 +45,40 @@
 
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body {
+    html, body {
+      height: 100%;
+      width: 100%;
       background-color: #0B0C10;
       color: #E2E8F0;
       font-family: 'Inter', sans-serif;
       overscroll-behavior-y: none;
     }
-    /* Custom subtle scrollbars */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #232738; border-radius: 9999px; }
-    ::-webkit-scrollbar-thumb:hover { background: #333952; }
 
-    /* Safe area padding for iPhone PWA */
-    .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
-    .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+    /* Hide scrollbars cleanly where horizontal scrolling is used */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+
+    /* Custom subtle desktop scrollbars */
+    @media (min-width: 768px) {
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #232738; border-radius: 9999px; }
+      ::-webkit-scrollbar-thumb:hover { background: #333952; }
+    }
+
+    /* iOS PWA Safe Area Insets */
+    .header-safe-top {
+      padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+    }
+    .dock-safe-bottom {
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+    }
+    .modal-safe-top {
+      padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
+    }
+    .sheet-safe-bottom {
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+    }
 
     @keyframes slideInRight {
       from { transform: translateX(100%); opacity: 0.6; }
@@ -160,24 +179,24 @@
 
   <!-- ==================== MAIN WORKSPACE ==================== -->
   <main class="flex-1 flex flex-col h-full overflow-hidden bg-[#0B0C10]">
-    <!-- Top Bar -->
-    <header class="pt-safe px-4 md:px-6 py-3.5 border-b border-[#1E2230] bg-[#0B0C10]/95 backdrop-blur flex flex-col gap-3 shrink-0">
-      <div class="flex items-center justify-between gap-3">
+    <!-- Sticky Top Header with iOS Safe-Area Inset -->
+    <header class="header-safe-top px-4 md:px-6 pb-3 border-b border-[#1E2230] bg-[#0B0C10]/95 backdrop-blur flex flex-col gap-2.5 shrink-0 z-20">
+      <div class="flex items-center justify-between gap-2 min-w-0">
         <!-- View Title & Count -->
-        <div class="flex items-center gap-2.5 min-w-0">
+        <div class="flex items-center gap-2 min-w-0">
           <div class="w-6 h-6 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="9" />
               <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
             </svg>
           </div>
-          <h1 id="workspace-title" class="text-base md:text-lg font-semibold text-white truncate">All Initiatives</h1>
-          <span id="workspace-count" class="px-2 py-0.5 text-xs font-mono rounded-full bg-[#161924] text-slate-400 border border-[#232838]">0</span>
+          <h1 id="workspace-title" class="text-[15px] sm:text-base md:text-lg font-semibold text-white truncate">All Initiatives</h1>
+          <span id="workspace-count" class="px-2 py-0.5 text-[11px] font-mono rounded-full bg-[#161924] text-slate-400 border border-[#232838] shrink-0">0</span>
         </div>
 
         <!-- Right Controls -->
-        <div class="flex items-center gap-2">
-          <!-- Search (Desktop) -->
+        <div class="flex items-center gap-2 shrink-0">
+          <!-- Search (Desktop / Tablet) -->
           <div class="relative hidden sm:block w-52 lg:w-64">
             <svg class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
@@ -186,15 +205,15 @@
             <kbd class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500 bg-[#181B26] px-1.5 py-0.5 rounded border border-[#242938]">⌘K</kbd>
           </div>
 
-          <!-- View Toggle -->
-          <div class="flex items-center bg-[#12141C] p-0.5 rounded-xl border border-[#1E2230]">
-            <button onclick="setViewMode('list')" id="btn-view-list" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#1E2232] text-white transition">
+          <!-- Compact View Toggle -->
+          <div class="flex items-center bg-[#12141C] p-0.5 rounded-xl border border-[#1E2230] shrink-0">
+            <button onclick="setViewMode('list')" id="btn-view-list" title="List View" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#1E2232] text-white transition">
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
               <span class="hidden sm:inline">List</span>
             </button>
-            <button onclick="setViewMode('board')" id="btn-view-board" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">
+            <button onclick="setViewMode('board')" id="btn-view-board" title="Board View" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <rect x="3" y="3" width="7" height="18" rx="1.5" />
                 <rect x="14" y="3" width="7" height="12" rx="1.5" />
@@ -203,27 +222,25 @@
             </button>
           </div>
 
-          <!-- New Primary Button -->
-          <button onclick="openCreateModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white text-xs font-semibold shadow-lg shadow-indigo-600/25 transition">
+          <!-- Desktop/Tablet Primary New Button (Hidden on <640px mobile since bottom dock has center '+') -->
+          <button onclick="openCreateModal()" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white text-xs font-semibold shadow-lg shadow-indigo-600/25 transition shrink-0">
             <span class="text-sm leading-none">+</span>
             <span>New</span>
           </button>
         </div>
       </div>
 
-      <!-- Filter Row: Space Pills + Priority Filter + Mobile Search -->
-      <div class="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+      <!-- Horizontal Scrollable Filter Row: Space Pills + Priority Dropdown -->
+      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pr-4 -mx-4 px-4 md:mx-0 md:px-0">
         <div id="filter-space-pills" class="flex items-center gap-1.5 shrink-0"></div>
 
-        <div class="flex items-center gap-2 shrink-0">
-          <select id="priority-filter" onchange="handlePriorityFilter(this.value)" class="px-2.5 py-1 text-xs bg-[#12141C] border border-[#1E2230] rounded-xl text-slate-300 focus:outline-none focus:border-indigo-500">
-            <option value="all">All Priorities</option>
-            <option value="Urgent">Urgent</option>
-            <option value="High">High</option>
-            <option value="Medium">Medium</option>
-            <option value="Low">Low</option>
-          </select>
-        </div>
+        <select id="priority-filter" onchange="handlePriorityFilter(this.value)" class="ml-auto px-2.5 py-1 text-xs bg-[#12141C] border border-[#1E2230] rounded-full text-slate-300 focus:outline-none focus:border-indigo-500 shrink-0">
+          <option value="all">All Priorities</option>
+          <option value="Urgent">Urgent</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
       </div>
 
       <!-- Mobile Search Bar -->
@@ -236,12 +253,12 @@
     </header>
 
     <!-- Workspace Content Area -->
-    <div id="workspace-content" class="flex-1 overflow-y-auto px-4 md:px-6 py-4 pb-24 md:pb-8"></div>
+    <div id="workspace-content" class="flex-1 overflow-y-auto px-4 md:px-6 py-4 pb-28 md:pb-8"></div>
   </main>
 
-  <!-- ==================== MOBILE BOTTOM NAVIGATION BAR ==================== -->
-  <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-[#0E1017]/95 backdrop-blur border-t border-[#1E2230] pb-safe">
-    <div class="grid grid-cols-4 h-14">
+  <!-- ==================== MOBILE BOTTOM NAVIGATION DOCK ==================== -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-[#0E1017]/95 backdrop-blur border-t border-[#1E2230] dock-safe-bottom pt-1.5">
+    <div class="grid grid-cols-4 h-12 items-center">
       <button onclick="setActiveSpace('all')" id="mob-nav-all" class="flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-indigo-400">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="9" />
@@ -255,8 +272,8 @@
         </svg>
         <span>Spaces</span>
       </button>
-      <button onclick="openCreateModal()" class="flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-indigo-400">
-        <div class="w-7 h-7 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow shadow-indigo-600/30">
+      <button onclick="openCreateModal()" aria-label="New Initiative" class="flex flex-col items-center justify-center">
+        <div class="w-9 h-9 rounded-2xl bg-indigo-600 active:scale-95 flex items-center justify-center text-white shadow-lg shadow-indigo-600/35 transition">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
           </svg>
@@ -281,7 +298,7 @@
   </aside>
 
   <!-- ==================== CREATE INITIATIVE / SUB-INITIATIVE MODAL ==================== -->
-  <div id="create-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden items-center justify-center p-4">
+  <div id="create-modal" onclick="closeCreateModal()" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden items-center justify-center p-4 modal-safe-top">
     <div onclick="event.stopPropagation()" class="w-full max-w-md bg-[#131620] border border-[#23283A] rounded-2xl shadow-2xl p-5 animate-modal">
       <div class="flex items-center justify-between mb-4">
         <div>
@@ -347,7 +364,7 @@
   </div>
 
   <!-- ==================== NEW SPACE MODAL ==================== -->
-  <div id="space-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden items-center justify-center p-4">
+  <div id="space-modal" onclick="closeNewSpaceModal()" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden items-center justify-center p-4 modal-safe-top">
     <div onclick="event.stopPropagation()" class="w-full max-w-sm bg-[#131620] border border-[#23283A] rounded-2xl shadow-2xl p-5 animate-modal">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-sm font-semibold text-white">Create New Space</h2>
@@ -379,18 +396,18 @@
 
   <!-- ==================== MOBILE SPACES SHEET ==================== -->
   <div id="mobile-spaces-modal" onclick="closeMobileSpacesSheet()" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden items-end justify-center">
-    <div onclick="event.stopPropagation()" class="w-full bg-[#131620] border-t border-[#23283A] rounded-t-2xl p-5 pb-safe space-y-3">
+    <div onclick="event.stopPropagation()" class="w-full bg-[#131620] border-t border-[#23283A] rounded-t-2xl p-5 sheet-safe-bottom space-y-3">
       <div class="flex items-center justify-between">
         <span class="text-sm font-semibold text-white">Spaces</span>
         <button onclick="openNewSpaceModal(); closeMobileSpacesSheet();" class="text-xs text-indigo-400 font-medium">+ New Space</button>
       </div>
-      <div id="mobile-spaces-list" class="space-y-1.5"></div>
+      <div id="mobile-spaces-list" class="space-y-1.5 max-h-[60vh] overflow-y-auto"></div>
     </div>
   </div>
 
   <!-- ==================== CROSS-DEVICE CLOUD SYNC MODAL ==================== -->
-  <div id="sync-modal" onclick="closeSyncModal()" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs hidden items-center justify-center p-4">
-    <div onclick="event.stopPropagation()" class="w-full max-w-lg bg-[#13151E] border border-[#242838] rounded-2xl shadow-2xl p-5 max-h-[92vh] overflow-y-auto animate-modal">
+  <div id="sync-modal" onclick="closeSyncModal()" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs hidden items-center justify-center p-4 modal-safe-top">
+    <div onclick="event.stopPropagation()" class="w-full max-w-lg bg-[#13151E] border border-[#242838] rounded-2xl shadow-2xl p-5 max-h-[88vh] overflow-y-auto animate-modal">
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2">
           <svg class="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -463,7 +480,7 @@ alter publication supabase_realtime add table orbit_workspaces;</pre>
   </div>
 
   <!-- Toast Notification -->
-  <div id="toast" class="fixed bottom-18 md:bottom-5 right-4 z-50 px-3.5 py-2 rounded-xl bg-[#1A1E2E] border border-[#2C334D] text-xs font-medium text-white shadow-xl opacity-0 pointer-events-none transition-opacity duration-200"></div>
+  <div id="toast" class="fixed bottom-20 md:bottom-5 right-4 z-50 px-3.5 py-2 rounded-xl bg-[#1A1E2E] border border-[#2C334D] text-xs font-medium text-white shadow-xl opacity-0 pointer-events-none transition-opacity duration-200"></div>
 
   <!-- ==================== APPLICATION LOGIC ==================== -->
   <script>
@@ -578,14 +595,14 @@ alter publication supabase_realtime add table orbit_workspaces;</pre>
       searchQuery: '',
       priorityFilter: 'all',
       collapsedGroups: {},
-      selectedItem: null, // { parentId, subId }
-      createParentId: null, // null = top-level, string = adding sub-initiative to parent
+      selectedItem: null,
+      createParentId: null,
     };
 
     let supabaseClient = null;
     let realtimeChannel = null;
     let syncTimer = null;
-    let syncStatus = 'local'; // 'local' | 'syncing' | 'synced' | 'error'
+    let syncStatus = 'local';
 
     function offsetDate(days) {
       const d = new Date();
@@ -714,8 +731,8 @@ alter publication supabase_realtime add table orbit_workspaces;</pre>
       const c = 2 * Math.PI * r;
       const offset = c - (pct / 100) * c;
       const stroke = done === total ? '#34D399' : '#6366F1';
-      return `<span class="inline-flex items-center gap-1.5 text-[11px] font-mono text-slate-400 shrink-0" title="${done} of ${total} sub-initiatives completed">
-        <svg class="w-4 h-4 -rotate-90" viewBox="0 0 16 16">
+      return `<span class="inline-flex items-center gap-1 text-[11px] font-mono text-slate-400 shrink-0" title="${done} of ${total} sub-initiatives completed">
+        <svg class="w-3.5 h-3.5 -rotate-90" viewBox="0 0 16 16">
           <circle cx="8" cy="8" r="${r}" fill="none" stroke="#252A3C" stroke-width="2" />
           <circle cx="8" cy="8" r="${r}" fill="none" stroke="${stroke}" stroke-width="2" stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round" />
         </svg>
@@ -853,7 +870,7 @@ alter publication supabase_realtime add table orbit_workspaces;</pre>
         if (groupItems.length === 0 && status === 'Done' && state.searchQuery === '') return '';
         const collapsed = !!state.collapsedGroups[status];
 
-        return `<section class="mb-5 rounded-2xl bg-[#101219] border border-[#1C202E] overflow-hidden">
+        return `<section class="mb-4 sm:mb-5 rounded-2xl bg-[#101219] border border-[#1C202E] overflow-hidden">
           <!-- Group Header -->
           <div class="px-3.5 py-2.5 bg-[#131620] border-b border-[#1C202E] flex items-center justify-between">
             <button onclick="toggleGroupCollapse('${status}')" class="flex items-center gap-2 text-xs font-semibold text-slate-200 hover:text-white">
@@ -888,21 +905,21 @@ alter publication supabase_realtime add table orbit_workspaces;</pre>
       const spColor = SPACE_COLORS[sp.color] || SPACE_COLORS.indigo;
       const isDone = item.status === 'Done';
 
-      const subRowsHtml = isExpanded ? `<div class="bg-[#0D0F15] border-t border-[#181C28] pl-7 sm:pl-11 pr-3 py-1.5 space-y-1">
+      const subRowsHtml = isExpanded ? `<div class="bg-[#0D0F15] border-t border-[#181C28] pl-6 sm:pl-11 pr-2.5 sm:pr-3 py-1.5 space-y-1">
         ${subs.map(sub => {
           const subDone = sub.status === 'Done';
-          return `<div onclick="openDetailDrawer('${item.id}', '${sub.id}')" class="group/sub flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl hover:bg-[#151924] cursor-pointer transition border border-transparent hover:border-[#22273A]">
-            <div class="flex items-center gap-2.5 min-w-0">
-              <span class="text-slate-600 text-xs font-mono select-none">└</span>
-              <button onclick="event.stopPropagation(); toggleSubStatus('${item.id}', '${sub.id}')" title="Cycle Status" class="hover:scale-110 transition">
+          return `<div onclick="openDetailDrawer('${item.id}', '${sub.id}')" class="group/sub flex items-center justify-between gap-2 px-2 sm:px-2.5 py-1.5 rounded-xl hover:bg-[#151924] cursor-pointer transition border border-transparent hover:border-[#22273A]">
+            <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+              <span class="text-slate-600 text-xs font-mono select-none shrink-0">└</span>
+              <button onclick="event.stopPropagation(); toggleSubStatus('${item.id}', '${sub.id}')" title="Cycle Status" class="hover:scale-110 transition shrink-0">
                 ${renderStatusIcon(sub.status, 'w-3.5 h-3.5')}
               </button>
               ${renderPriorityIcon(sub.priority)}
               <span class="text-xs truncate ${subDone ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}">${escapeHtml(sub.title)}</span>
             </div>
-            <div class="flex items-center gap-2.5 shrink-0">
+            <div class="flex items-center gap-2 shrink-0">
               ${formatDueBadge(sub.dueDate, subDone)}
-              <button onclick="event.stopPropagation(); deleteSubInitiative('${item.id}', '${sub.id}')" title="Delete sub-initiative" class="opacity-0 group-hover/sub:opacity-100 p-1 rounded text-slate-500 hover:text-rose-400 transition">
+              <button onclick="event.stopPropagation(); deleteSubInitiative('${item.id}', '${sub.id}')" title="Delete sub-initiative" class="hidden sm:inline-flex opacity-0 group-hover/sub:opacity-100 p-1 rounded text-slate-500 hover:text-rose-400 transition">
                 <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -913,16 +930,16 @@ alter publication supabase_realtime add table orbit_workspaces;</pre>
       </div>` : '';
 
       return `<div class="group/row">
-        <div onclick="openDetailDrawer('${item.id}')" class="px-3.5 py-2.5 hover:bg-[#151823] cursor-pointer transition flex items-center justify-between gap-2">
+        <div onclick="openDetailDrawer('${item.id}')" class="px-3 sm:px-3.5 py-2.5 hover:bg-[#151823] cursor-pointer transition flex items-center justify-between gap-2">
           <!-- Left side -->
-          <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div class="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
             <button onclick="event.stopPropagation(); toggleExpandInitiative('${item.id}')" class="w-5 h-5 flex items-center justify-center rounded hover:bg-[#22273A] text-slate-400 text-[11px] shrink-0 ${hasSubs ? 'visible' : 'opacity-30'}">
               ${hasSubs ? (isExpanded ? '▾' : '▸') : '•'}
             </button>
 
             ${renderPriorityIcon(item.priority)}
 
-            <button onclick="event.stopPropagation(); toggleInitiativeStatus('${item.id}')" title="Cycle Status" class="hover:scale-110 transition">
+            <button onclick="event.stopPropagation(); toggleInitiativeStatus('${item.id}')" title="Cycle Status" class="hover:scale-110 transition shrink-0">
               ${renderStatusIcon(item.status)}
             </button>
 
@@ -934,19 +951,19 @@ alter publication supabase_realtime add table orbit_workspaces;</pre>
           </div>
 
           <!-- Right metadata & + Sub button -->
-          <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-            <button onclick="event.stopPropagation(); openCreateModal('${item.id}')" title="Add Sub-initiative" class="md:opacity-0 md:group-hover/row:opacity-100 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-[11px] font-medium text-indigo-300 transition">
+          <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <button onclick="event.stopPropagation(); openCreateModal('${item.id}')" title="Add Sub-initiative" class="md:opacity-0 md:group-hover/row:opacity-100 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-[11px] font-medium text-indigo-300 transition shrink-0">
               <span>+ Sub</span>
             </button>
 
-            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[11px] font-medium ${spColor.pill}">
+            <span class="inline-flex items-center gap-1.5 px-1.5 sm:px-2 py-0.5 rounded-md border text-[11px] font-medium ${spColor.pill} shrink-0">
               <span class="w-1.5 h-1.5 rounded-full ${spColor.dot}"></span>
               <span class="hidden sm:inline">${escapeHtml(sp.name)}</span>
             </span>
 
             ${renderProgressRing(doneSubs, subs.length)}
 
-            <div class="hidden xs:block sm:block">
+            <div class="hidden sm:block">
               ${formatDueBadge(item.dueDate, isDone)}
             </div>
           </div>
@@ -1039,12 +1056,12 @@ alter publication supabase_realtime add table orbit_workspaces;</pre>
       const doneSubs = subs.filter(s => s.status === 'Done').length;
 
       container.innerHTML = `
-        <!-- Drawer Header -->
-        <div class="px-5 py-4 border-b border-[#1E2230] flex items-center justify-between gap-2 shrink-0">
+        <!-- Drawer Header with iOS Safe-Area Top -->
+        <div class="header-safe-top px-5 pb-3.5 border-b border-[#1E2230] flex items-center justify-between gap-2 shrink-0">
           <div class="flex items-center gap-2 min-w-0">
             ${subId ? `<button onclick="openDetailDrawer('${parent.id}')" class="text-xs text-indigo-400 hover:underline truncate">← ${escapeHtml(parent.title)}</button>` : `<span class="text-xs font-mono text-slate-400">${escapeHtml(parent.code)}</span>`}
           </div>
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1.5 shrink-0">
             ${subId ? `<button onclick="promoteSubToTopLevel('${parent.id}', '${subId}')" title="Promote to top-level initiative" class="px-2.5 py-1 rounded-lg bg-[#191D2B] hover:bg-[#23283B] text-[11px] text-slate-300">Promote</button>` : ''}
             <button onclick="deleteCurrentItem()" title="Delete" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1056,7 +1073,7 @@ alter publication supabase_realtime add table orbit_workspaces;</pre>
         </div>
 
         <!-- Drawer Body -->
-        <div class="flex-1 overflow-y-auto p-5 space-y-5">
+        <div class="flex-1 overflow-y-auto p-5 space-y-5 sheet-safe-bottom">
           <!-- Title -->
           <div>
             <input type="text" value="${escapeHtml(target.title)}" onchange="updateSelectedField('title', this.value)" class="w-full text-base font-semibold bg-transparent border-b border-transparent focus:border-indigo-500 focus:outline-none text-white pb-1" />
@@ -1111,7 +1128,7 @@ alter publication supabase_realtime add table orbit_workspaces;</pre>
             <form onsubmit="quickAddSubInitiative(event, '${parent.id}')" class="flex flex-col sm:flex-row gap-2 mb-3 p-2.5 rounded-xl bg-[#0D0F16] border border-[#22273A]">
               <input id="quick-sub-title" type="text" required placeholder="Add assignment, task, or milestone..." class="flex-1 px-2.5 py-1.5 text-xs bg-[#151823] border border-[#23283A] focus:border-indigo-500 focus:outline-none rounded-lg text-white placeholder-slate-500" />
               <div class="flex items-center gap-1.5">
-                <input id="quick-sub-due" type="date" class="px-2 py-1.5 text-[11px] bg-[#151823] border border-[#23283A] rounded-lg text-slate-300" />
+                <input id="quick-sub-due" type="date" class="flex-1 sm:flex-none px-2 py-1.5 text-[11px] bg-[#151823] border border-[#23283A] rounded-lg text-slate-300" />
                 <select id="quick-sub-priority" class="px-2 py-1.5 text-[11px] bg-[#151823] border border-[#23283A] rounded-lg text-slate-300">
                   <option value="Medium">Med</option>
                   <option value="High">High</option>
@@ -1127,7 +1144,7 @@ alter publication supabase_realtime add table orbit_workspaces;</pre>
               ${subs.length === 0 ? `<p class="text-xs text-slate-500 py-3 text-center">No sub-initiatives yet. Add homework, tasks, or milestones above.</p>` : subs.map(s => `
                 <div onclick="openDetailDrawer('${parent.id}', '${s.id}')" class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#151823] hover:bg-[#1B1F2E] border border-[#22273A] cursor-pointer transition">
                   <div class="flex items-center gap-2.5 min-w-0">
-                    <button onclick="event.stopPropagation(); toggleSubStatus('${parent.id}', '${s.id}')" class="hover:scale-110 transition">
+                    <button onclick="event.stopPropagation(); toggleSubStatus('${parent.id}', '${s.id}')" class="hover:scale-110 transition shrink-0">
                       ${renderStatusIcon(s.status, 'w-4 h-4')}
                     </button>
                     ${renderPriorityIcon(s.priority)}
